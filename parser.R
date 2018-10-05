@@ -1,3 +1,18 @@
+convert_quality <- function(line){
+  line <- strsplit(sub("\\s+$", "", line), "")[[1]]
+  result <- vector()
+  for (letterg in line){
+    score <- utf8ToInt(letter) - 33
+    if (score < 0 | score > 41){
+      stop(paste("ERROR: Unexpected integer value in convert_quality():", score))
+    }
+    else{
+      result <- c(result, score)
+    }
+  }
+  result
+}
+
 parse_fastq <- function(file){
   tmp.list <- list()
   header <- NULL
