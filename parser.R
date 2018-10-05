@@ -1,7 +1,7 @@
 convert_quality <- function(line){
   line <- strsplit(sub("\\s+$", "", line), "")[[1]]
   result <- vector()
-  for (letterg in line){
+  for (letter in line){
     score <- utf8ToInt(letter) - 33
     if (score < 0 | score > 41){
       stop(paste("ERROR: Unexpected integer value in convert_quality():", score))
@@ -14,24 +14,30 @@ convert_quality <- function(line){
 }
 
 parse_fastq <- function(file){
+  con <- file(file, "r")
+  # con <- file
   tmp.list <- list()
   header <- NULL
   sequence <- ""
   quality <- vector()
   ln = 0
-  for (line in file){
+  seqs = 0
+  while( TRUE ){
+    line = readLines(con, n = 1)
+    if (length(line) == 0){
+      break
+    }
     position <- ln %% 4
     
     if (position == 0 && startsWith(line, "@")){
       if (! is.null(header)){
-        tmp.list <- c(tmp.list, c(header, sequence, quality))
+        seqs <- seqs + 1
+        tmp.list[[seqs]] <- list(header, sequence, quality)
       }
-      else{
-        header <- sub("\\s+$", "", line)
-      }
+      header <- sub("^@", "", line)
     }
     else if (position == 1){
-      sequence = sub("\\s+$", "", line)
+      sequence = line
     }
     else if (position == 2 && startsWith(line, "+")){
       ln = ln + 1
@@ -45,6 +51,9 @@ parse_fastq <- function(file){
     }
     ln = ln + 1
   }
-  tmp.list <- c(tmp.list, c(header, sequence, quality))
+  close(con)
+  seqs <- seqs + 1
+  tmp.list[[seqs]] <- list(header, sequence, quality)
   tmp.list
 }
+
