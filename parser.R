@@ -1,12 +1,14 @@
 convert_quality <- function(line) {
   # TODO: accommodate other quality score conversions (e.g., Solexa)
-  # @arg line:
-  # @return <describe return value>
+  # @arg line: string of encoded quality scores
+  # @return vector of converted integer values
   
   # remove trailing whitespace (incl. line break)
+  # split string into character vector
   line <- strsplit(sub("\\s+$", "", line), "")[[1]]
   
-  result <- vector()
+  result <- vector() 
+  
   for (letter in line){
     score <- utf8ToInt(letter) - 33
     if (score < 0 | score > 41){
@@ -19,15 +21,18 @@ convert_quality <- function(line) {
 }
 
 parse_fastq <- function(file) {
-  # @arg file: 
+  # @arg file: Absolute or relative path to a FASTQ file
+  # @return list of (header, sequence, quality scores) lists
+  
   con <- file(file, "r")
-  # con <- file
-  tmp.list <- list()
+
+  # prepare containers
+  seqs <- list()
   header <- NULL
   sequence <- ""
   quality <- vector()
   ln <- 0
-  seqs <- 0
+  seq_number <- 0
   
   while( TRUE ) {
     line = readLines(con, n=1)
@@ -38,8 +43,8 @@ parse_fastq <- function(file) {
     
     if (position == 0 && startsWith(line, "@")) {
       if (!is.null(header)){
-        seqs <- seqs + 1
-        tmp.list[[seqs]] <- list(header, sequence, quality)
+        seq_number <- seq_number + 1
+        seqs[[seq_number]] <- list(header, sequence, quality)
       }
       header <- sub("^@", "", line)
     }
@@ -61,8 +66,8 @@ parse_fastq <- function(file) {
   close(con)
   
   # handle last entry
-  seqs <- seqs + 1
-  tmp.list[[seqs]] <- list(header, sequence, quality)
-  tmp.list
+  seq_number <- seq_number + 1
+  seqs[[seq_number]] <- list(header, sequence, quality)
+  
+  seqs
 }
-
