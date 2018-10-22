@@ -71,3 +71,46 @@ parse_fastq <- function(file) {
   
   seqs
 }
+
+parse_fasta <- function(file) {
+  # @arg file: Absolute or relative path to a FASTA file
+  # @return list of (header, sequence) lists
+  
+  con <- file(file, "r")
+  
+  # prepare containers
+  seqs <- list()
+  header <- NULL
+  sequence <- ""
+  
+  seq_number <- 0
+  
+  while( TRUE ) {
+    line = readLines(con, n=1)
+    if (length(line) == 0) {
+      break  # reached end of file
+    }
+    
+    if (startsWith(line, ">")) {
+      # line starts a new record
+      if (!is.null(header)){
+        # add the current record if it exists
+        seq_number <- seq_number + 1
+        seqs[[seq_number]] <- list(header, sequence)
+      }
+      # start next record
+      header <- sub("^>", "", line)
+      sequence <- ""
+    }
+    else{
+      sequence <- paste0(sequence, line)
+    }
+  }
+  close(con)
+  
+  # handle last entry
+  seq_number <- seq_number + 1
+  seqs[[seq_number]] <- list(header, sequence)
+  
+  seqs
+}
