@@ -32,8 +32,7 @@ parse_fastq <- function(file) {
   sequence <- ""
   quality <- vector()
   ln <- 0
-  seq_number <- 0
-  
+
   while( TRUE ) {
     line = readLines(con, n=1)
     if (length(line) == 0) {
@@ -43,8 +42,7 @@ parse_fastq <- function(file) {
     
     if (position == 0 && startsWith(line, "@")) {
       if (!is.null(header)){
-        seq_number <- seq_number + 1
-        seqs[[seq_number]] <- list(header, sequence, quality)
+        seqs[[length(seqs)+1]] <- list(sequence=sequence, header=header, quality=quality)
       }
       header <- sub("^@", "", line)
     }
@@ -66,8 +64,7 @@ parse_fastq <- function(file) {
   close(con)
   
   # handle last entry
-  seq_number <- seq_number + 1
-  seqs[[seq_number]] <- list(header, sequence, quality)
+  seqs[[length(seqs)+1]] <- list(sequence=sequence, header=header, quality=quality)
   
   seqs
 }
@@ -83,8 +80,7 @@ parse_fasta <- function(file) {
   header <- NULL
   sequence <- ""
   
-  seq_number <- 0
-  
+
   while( TRUE ) {
     line = readLines(con, n=1)
     if (length(line) == 0) {
@@ -95,8 +91,7 @@ parse_fasta <- function(file) {
       # line starts a new record
       if (!is.null(header)){
         # add the current record if it exists
-        seq_number <- seq_number + 1
-        seqs[[seq_number]] <- list(header, sequence)
+        seqs[[length(seqs)+1]] <- list(sequence=sequence, header=header)
       }
       # start next record
       header <- sub("^>", "", line)
@@ -109,8 +104,7 @@ parse_fasta <- function(file) {
   close(con)
   
   # handle last entry
-  seq_number <- seq_number + 1
-  seqs[[seq_number]] <- list(header, sequence)
+  seqs[[length(seqs)+1]] <- list(sequence=sequence, header=header)
   
   seqs
 }
