@@ -1,18 +1,18 @@
 #TODO: is.Data, is.fasta, is.fastq etc
 
 Data <-  function(file, datatype = tail(strsplit(file, "\\.")[[1]], n = 1)) {
-  #@arg file absolute path to sequence file
-  #@arg datatype file type, default: file extension
-  #@return s3 Data object to hold raw and processed sequencing data for single file
+  # @arg file absolute path to sequence file
+  # @arg datatype file type, default: file extension
+  # @return s3 Data object to hold raw and processed sequencing data for single file
   
-  #validate file exists
+  # validate file exists
   if (!file.exists(file)) {
     stop(paste("Error: file", file, "not found"),
          call. = FALSE
     )
   }
   
-  #validate file type
+  # validate file type
   if (tolower(datatype) %in% c("fasta", "fa")) {
     datatype <- "fasta"
   }
@@ -27,7 +27,7 @@ Data <-  function(file, datatype = tail(strsplit(file, "\\.")[[1]], n = 1)) {
     )
   }
   
-  #create s3 Data structure
+  # create s3 Data structure
   data <- structure(
     as.environment(
       list(
@@ -45,8 +45,8 @@ Data <-  function(file, datatype = tail(strsplit(file, "\\.")[[1]], n = 1)) {
 
 
 init <- function(session = "highlineR.data") {
-  #@arg session string name for environment
-  #@return empty environment to hold sequence data
+  # @arg session string name for environment
+  # @return empty environment to hold sequence data
   
   assign(session, 
          structure(new.env(), class = c("session", "environment")),
@@ -58,10 +58,10 @@ init <- function(session = "highlineR.data") {
 
 
 import_file <- function(file, datatype, session) {
-  #@arg file absolute path to sequence file
-  #@arg datatype file type, optional
-  #@arg session string name of environment to load sequence files into
-  #imports file into specified session
+  # @arg file: absolute path to sequence file
+  # @arg datatype: file type, optional
+  # @arg session: string name of environment to load sequence files into
+  # imports file into specified session
   
   stopifnot(is.character(file))
   stopifnot(is.character(datatype))
@@ -69,16 +69,16 @@ import_file <- function(file, datatype, session) {
   
   stopifnot(file.exists(file))
   
-  #create environment if it doesn't exist
+  # create environment if it doesn't exist
   if (! exists(session)) {
     init(session)
   }
   
-  #ignore files already imported
+  # ignore files already imported
   else if (exists(file, envir = get(session), inherits = FALSE)) {
     warning(paste("File", file, "ignored. Already imported in", session, "session."))
   }
-  #otherwise create Data object within specified session
+  # otherwise create Data object within specified session
   else {
     if (missing(datatype)) {
       assign(file, Data(file), envir = get(session))
@@ -91,15 +91,15 @@ import_file <- function(file, datatype, session) {
 
 
 import <- function(path, datatype, session = "highlineR.data") {
-  #@arg path absolute path to sequence file or directory containing sequence files
-  #@arg datatype file type, optional
-  #@arg session string name of environment to load sequence files to, default highlineR.data
-  #@return environment containing imported sequence file(s) 
+  # @arg path: absolute path to sequence file or directory containing sequence files
+  # @arg datatype: file type, optional
+  # @arg session: string name of environment to load sequence files to, default highlineR.data
+  # @return environment containing imported sequence file(s) 
 
-  #validate path
+  # validate path
   stopifnot(file.exists(path))
   
-  #if path is directory, import each file
+  # if path is directory, import each file
   if (dir.exists(path)) {
     tmp.list.1 <- list.files(path, full.names = TRUE)
     
@@ -112,7 +112,7 @@ import <- function(path, datatype, session = "highlineR.data") {
       }
     }
   }
-  #if path is file, import file
+  # if path is file, import file
   else {
     if (missing(datatype)) {
       import_file(path, session = session)

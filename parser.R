@@ -1,11 +1,13 @@
-parse <- function(x){
+#TODO: verify parsed list empty before parsing
+
+parse <- function(x) {
   UseMethod("parse", x)
 }
 
 parse.session <- function(session = highlineR.data) {
-  #arg session environment containing imported sequence Data objects
+  #arg session: environment containing imported sequence Data objects
   
-  for (data in ls(session)){
+  for (data in ls(session)) {
     parse(get(data, envir = session, inherits = FALSE))
   }
 }
@@ -21,29 +23,29 @@ parse.fasta <- function(data) {
   sequence <- ""
   
   while( TRUE ) {
-    line = readLines(con, n=1)
+    line = readLines(con, n = 1)
     if (length(line) == 0) {
       break  # reached end of file
     }
     
     if (startsWith(line, ">")) {
       # line starts a new record
-      if (!is.null(header)){
+      if (!is.null(header)) {
         # add the current record if it exists
-        data$raw_seq[[length(data$raw_seq)+1]] <- list(sequence=sequence, header=header)
+        data$raw_seq[[length(data$raw_seq)+1]] <- list(sequence = sequence, header = header)
       }
       # start next record
       header <- sub("^>", "", line)
       sequence <- ""
     }
-    else{
+    else {
       sequence <- paste0(sequence, line)
     }
   }
   close(con)
   
   # handle last entry
-  data$raw_seq[[length(data$raw_seq)+1]] <- list(sequence=sequence, header=header)
+  data$raw_seq[[length(data$raw_seq)+1]] <- list(sequence = sequence, header = header)
   
 }
 
@@ -60,15 +62,15 @@ parse.fastq <- function(data) {
   ln <- 0
 
   while( TRUE ) {
-    line = readLines(con, n=1)
+    line = readLines(con, n = 1)
     if (length(line) == 0) {
       break  # reached end of file
     }
     position <- ln %% 4
     
     if (position == 0 && startsWith(line, "@")) {
-      if (!is.null(header)){
-        data$raw_seq[[length(data$raw_seq)+1]] <- list(sequence=sequence, header=header, quality=quality)
+      if (!is.null(header)) {
+        data$raw_seq[[length(data$raw_seq)+1]] <- list(sequence = sequence, header = header, quality = quality)
       }
       header <- sub("^@", "", line)
     }
@@ -79,10 +81,10 @@ parse.fastq <- function(data) {
       ln <- ln + 1
       next
     }
-    else if (position == 3){
+    else if (position == 3) {
       quality <- convert_quality(line)
     }
-    else{
+    else {
       stop(paste("ERROR: Failed to parse FASTQ at line:\n", line))
     }
     ln <- ln + 1
@@ -90,7 +92,7 @@ parse.fastq <- function(data) {
   close(con)
   
   # handle last entry
-  data$raw_seq[[length(data$raw_seq)+1]] <- list(sequence=sequence, header=header, quality=quality)
+  data$raw_seq[[length(data$raw_seq)+1]] <- list(sequence = sequence, header = header, quality = quality)
 }
 
 convert_quality <- function(line) {
@@ -104,18 +106,18 @@ convert_quality <- function(line) {
   
   result <- vector() 
   
-  for (letter in line){
+  for (letter in line) {
     score <- utf8ToInt(letter) - 33
-    if (score < 0 | score > 41){
+    if (score < 0 | score > 41) {
       stop(paste("ERROR: Unexpected integer value in convert_quality():", score))
-    } else{
+    } else {
       result <- c(result, score)
     }
   }
   result
 }
 
-parse.default <- function(data, ...){
+parse.default <- function(data) {
   warning(paste("highlineR does not know how to handle files of type ",
                 class(data),
                 "and can only be used on fasta and fastq files"))
