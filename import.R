@@ -1,5 +1,7 @@
 #TODO: is.Data, is.fasta, is.fastq etc
 #TODO: close(sesion)
+#TODO: remove Data
+#TODO: nucleotide or amino acid data type
 
 Data <-  function(file, datatype = tail(strsplit(file, "\\.")[[1]], n = 1)) {
   # @arg file absolute path to sequence file
@@ -34,9 +36,13 @@ Data <-  function(file, datatype = tail(strsplit(file, "\\.")[[1]], n = 1)) {
       list(
         path = file, 
         raw_seq = list(), 
-        compressed = new.env(),
+        compressed = 
+          structure(
+            new.env(),
+            class = c("compressed", "environment")
+            ),
         master = character(),
-        seq_diff = new.env()
+        seq_diff = matrix()
         )
       ), 
     class = c(datatype, "Data", "environment")
