@@ -1,16 +1,13 @@
-#TODO: is.Data, is.fasta, is.fastq etc
-#TODO: close(sesion)
-#TODO: remove Data
 #TODO: nucleotide or amino acid data type
 
-Data <-  function(file, datatype = tail(strsplit(file, "\\.")[[1]], n = 1)) {
-  # @arg file absolute path to sequence file
+Data <-  function(path, datatype = tail(strsplit(path, "\\.")[[1]], n = 1)) {
+  # @arg path absolute path to sequence file
   # @arg datatype file type, default: file extension
   # @return s3 Data object to hold raw and processed sequencing data for single file
   
   # validate file exists
-  if (!file.exists(file)) {
-    stop(paste("Error: file", file, "not found"),
+  if (!file.exists(path)) {
+    stop(paste("Error: file", path, "not found"),
          call. = FALSE
     )
   }
@@ -23,7 +20,7 @@ Data <-  function(file, datatype = tail(strsplit(file, "\\.")[[1]], n = 1)) {
     datatype <- "fastq"
   }
   else {
-    stop(paste("Error: file", file, "not imported. highlineR does not know how to handle files of type",
+    stop(paste("Error: file", path, "not imported. highlineR does not know how to handle files of type",
                datatype,
                "and can only be used on fasta and fastq files"),
          call. = FALSE
@@ -34,7 +31,7 @@ Data <-  function(file, datatype = tail(strsplit(file, "\\.")[[1]], n = 1)) {
   data <- structure(
     as.environment(
       list(
-        path = file, 
+        path = path, 
         raw_seq = list(), 
         compressed = 
           structure(
@@ -48,12 +45,31 @@ Data <-  function(file, datatype = tail(strsplit(file, "\\.")[[1]], n = 1)) {
     class = c(datatype, "Data", "environment")
     )
   
+  parent.env(data$compressed) <- data
   
   data
 }
 
+remove_Data <- function(data, session = "highlineR.session") {
+  # @arg data Data object or string name of Data object to be removed
+  # @arg session session containing Data object to be removed
+  # removes specified Data object from specified session environment
+  
+  if (is.character(data)) {
+    # check if specified Data objec exists in specified session
+    stopifnot(exists(data, envir = session))
+    # remove
+    rm(list=data, envir = session)
+  }
+  else {
+    # if Data object provided
+    stopifnot(inherits(data, "Data"))
+    rm(list=data$path, envir = parent.env(data))
+  }
+}
 
-init <- function(session = "highlineR.data") {
+
+init_session <- function(session = "highlineR.session") {
   # @arg session string name for environment
   # @return empty environment to hold sequence data
   
@@ -64,44 +80,63 @@ init <- function(session = "highlineR.data") {
   get(session)
 }
 
+close_session <- function(session = "highlineR.session") {
+  # @arg session string name or session object
+  # removes session environment object
+  
+  if (! is.character(session)) {
+    session <- deparse(substitute(session))
+  }
+  stopifnot(exists(session))
+  
+  # check session argument is of session class
+  stopifnot(inherits(get(session, envir = .GlobalEnv), "session"))
+  
+  rm(list=paste(session), envir = .GlobalEnv)
+}
 
-import_file <- function(file, datatype, session) {
-  # @arg file: absolute path to sequence file
+import_file <- function(path, datatype, session) {
+  # @arg path: absolute path to sequence file
   # @arg datatype: file type, optional
   # @arg session: string name of environment to load sequence files into
   # imports file into specified session
   
-  stopifnot(is.character(file))
+  if (missing(session)) {
+    stop("highlineR session not specified.")
+  }
+  stopifnot(is.character(session))
+  
+  stopifnot(is.character(path))
+  stopifnot(file.exists(path))
+  
   if (! missing(datatype)) {
     stopifnot(is.character(datatype))
   }
-  if(! missing(session)) {
-    stopifnot(is.character(session))
-  }
-  stopifnot(file.exists(file))
   
   # create environment if it doesn't exist
   if (! exists(session)) {
-    init(session)
+    init_session(session)
   }
   
   # ignore files already imported
-  if (exists(file, envir = get(session), inherits = FALSE)) {
-    warning(paste("File", file, "ignored. Already imported in", session, "session."))
+  if (exists(path, envir = get(session), inherits = FALSE)) {
+    warning(paste("File", path, "ignored. Already imported in", session, "session."))
   }
   # otherwise create Data object within specified session
   else {
     if (missing(datatype)) {
-      assign(file, Data(file), envir = get(session))
+      data <- Data(path)
     }
     else {
-      assign(file, Data(file, datatype = datatype), envir = get(session))
+      data <- Data(path, datatype = datatype)
     }
+    parent.env(data) <- get(session)
+    assign(path, data, envir = get(session))
   }
 }
 
 
-import <- function(path, datatype, session = "highlineR.data") {
+import_raw_seq <- function(path, datatype, session = "highlineR.session") {
   # @arg path: absolute path to sequence file or directory containing sequence files
   # @arg datatype: file type, optional
   # @arg session: string name of environment to load sequence files to, default highlineR.data
