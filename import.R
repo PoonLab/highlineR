@@ -95,7 +95,7 @@ close_session <- function(session = "highlineR.session") {
   rm(list=paste(session), envir = .GlobalEnv)
 }
 
-import_file <- function(path, datatype, session) {
+import_file <- function(path, datatype, session, force = FALSE) {
   # @arg path: absolute path to sequence file
   # @arg datatype: file type, optional
   # @arg session: string name of environment to load sequence files into
@@ -118,8 +118,8 @@ import_file <- function(path, datatype, session) {
     init_session(session)
   }
   
-  # ignore files already imported
-  if (exists(path, envir = get(session), inherits = FALSE)) {
+  # ignore files already imported unless forced
+  if (force == FALSE && exists(path, envir = get(session), inherits = FALSE)) {
     warning(paste("File", path, "ignored. Already imported in", session, "session."))
   }
   # otherwise create Data object within specified session
@@ -136,7 +136,7 @@ import_file <- function(path, datatype, session) {
 }
 
 
-import_raw_seq <- function(path, datatype, session = "highlineR.session") {
+import_raw_seq <- function(path, datatype, session = "highlineR.session", force = FALSE) {
   # @arg path: absolute path to sequence file or directory containing sequence files
   # @arg datatype: file type, optional
   # @arg session: string name of environment to load sequence files to, default highlineR.data
@@ -154,10 +154,10 @@ import_raw_seq <- function(path, datatype, session = "highlineR.session") {
     for (i in 1:length(tmp.list.1)) {
       result <- tryCatch(
         if (missing(datatype)) {
-          import_file(tmp.list.1[i], session = session)
+          import_file(tmp.list.1[i], session = session, force = force)
         }
         else {
-          import_file(tmp.list.1[i], datatype = datatype, session = session)
+          import_file(tmp.list.1[i], datatype = datatype, session = session, force = force)
         }
       , error = function(e) {
         warning(e)
@@ -174,10 +174,10 @@ import_raw_seq <- function(path, datatype, session = "highlineR.session") {
   # if path is file, import file
   else {
     if (missing(datatype)) {
-      import_file(path, session = session)
+      import_file(path, session = session, force = force)
     }
     else {
-      import_file(path, datatype = datatype, session = session)
+      import_file(path, datatype = datatype, session = session, force = force)
     }
     
   }
