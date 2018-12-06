@@ -1,121 +1,139 @@
-#TODO: verify parsed list empty before parsing
-#TODO: handle other type of quality scoring
-
 parse <- function(x, ...) {
   UseMethod("parse", x)
 }
 
-parse.session <- function(session, quality_scoring = NULL, ...) {
+parse.session <- function(session, encoding = "sanger", ...) {
   #arg session: environment containing imported sequence Data objects
   
   for (data in ls(session)) {
-    parse(get(data, envir = session, inherits = FALSE), quality_scoring = quality_scoring)
+    parse(get(data, envir = session, inherits = FALSE), encoding = encoding)
   }
 }
 
-parse.fasta <- function(data, ...) {
+parse.fasta <- function(data, encoding = NULL, ...) {
   # @arg data: Data object containing absolute or relative path to a FASTA file
   # populates Data object's raw_seq list with (header, sequence) lists
   
-  con <- file(data$path, "r")
-  
-  # prepare containers
-  header <- NULL
-  sequence <- ""
-  
-  while( TRUE ) {
-    line = readLines(con, n = 1)
-    if (length(line) == 0) {
-      break  # reached end of file
-    }
-    
-    if (startsWith(line, ">")) {
-      # line starts a new record
-      if (!is.null(header)) {
-        # add the current record if it exists
-        data$raw_seq[[length(data$raw_seq)+1]] <- list(sequence = sequence, header = header)
-      }
-      # start next record
-      header <- sub("^>", "", line)
-      sequence <- ""
-    }
-    else {
-      sequence <- paste0(sequence, line)
-    }
+  # ignore already parsed files
+  if (length(data$raw_seq) != 0) {
+    warning(paste0("ERROR: file '", data$path, "' ignored. Already parsed."))
   }
-  close(con)
-  
-  # handle last entry
-  data$raw_seq[[length(data$raw_seq)+1]] <- list(sequence = sequence, header = header)
-  
-}
-
-parse.fastq <- function(data, quality_scoring = "sanger", ...) {
-  # @arg data: Data object containing absolute or relative path to a FASTQ file
-  # populates Data object's raw_seq list with (header, sequence, quality scores) lists
-  
-  #validate quality scoring method
-  quality_scoring <- match.arg(tolower(quality_scoring), c("sanger", "solexa"))
-  
-  con <- file(data$path, "r")
-
-  # prepare containers
-  header <- NULL
-  sequence <- ""
-  quality <- vector()
-  ln <- 0
-  res <- NULL
-  
-  res <- tryCatch({
+  else{
+    con <- file(data$path, "r")
+    
+    # prepare containers
+    header <- NULL
+    sequence <- ""
+    ln <- 0
+    
     while( TRUE ) {
       line = readLines(con, n = 1)
       if (length(line) == 0) {
         break  # reached end of file
       }
-      position <- ln %% 4
       
-      if (position == 0 && startsWith(line, "@")) {
+      if (startsWith(line, ">")) {
+        # line starts a new record
         if (!is.null(header)) {
-          data$raw_seq[[length(data$raw_seq)+1]] <- list(sequence = sequence, header = header, quality = quality)
+          # add the current record if it exists
+          data$raw_seq[[length(data$raw_seq)+1]] <- list(header = header, sequence = sequence)
         }
-        header <- sub("^@", "", line)
+        # start next record
+        header <- sub("^>", "", line)
+        sequence <- ""
       }
-      else if (position == 1) {
-        sequence <- line
-      }
-      else if (position == 2 && startsWith(line, "+")) {
-        ln <- ln + 1
-        next
-      }
-      else if (position == 3) {
-        quality <- convert_quality(line, quality_scoring = quality_scoring)
+      else if (grepl("^[A|T|G|C|-]", line)) {
+        sequence <- paste0(sequence, line)
       }
       else {
-        stop(paste("ERROR: Failed to parse FASTQ at line:\n", line))
+        # incorrect format
+        stop(paste("ERROR: Failed to parse FASTA at line:", ln))
       }
       ln <- ln + 1
     }
-    # handle last entry
-    data$raw_seq[[length(data$raw_seq)+1]] <- list(sequence = sequence, header = header, quality = quality)
-  },
-  error = function(e) {
-    warning(e)
-    data$raw_seq <- list()
-  },
-  warning = function(w) {
-    warning(w)
-  },
-  finally = {
     close(con)
-  })
-  if(inherits(res, "error")){
-    print(res)
+    
+    # handle last entry
+    data$raw_seq[[length(data$raw_seq)+1]] <- list(header = header, sequence = sequence)
   }
 }
 
-convert_quality <- function(line, quality_scoring = "sanger", ...) {
+parse.fastq <- function(data, encoding = "sanger", ...) {
+  # @arg data: Data object containing absolute or relative path to a FASTQ file
+  # @arg encoding FASTQ file quality score encoding. Options: "Sanger", "Solexa", "Illumina1.3", "Illumina1.5". "Illumina1.8"
+  # populates Data object's raw_seq list with (header, sequence, quality scores) lists
+  
+  # ignore already parsed files
+  if (length(data$raw_seq) != 0) {
+    warning(paste0("ERROR: file '", data$path, "' ignored. Already parsed."))
+  }
+  else {
+    con <- file(data$path, "r")
+    
+    # prepare containers
+    header <- NULL
+    sequence <- ""
+    quality <- vector()
+    ln <- 0
+    
+    res <- tryCatch(
+      {
+        while( TRUE ) {
+          line = readLines(con, n = 1)
+          if (length(line) == 0) {
+            break  # reached end of file
+          }
+          position <- ln %% 4
+          
+          if (position == 0 && startsWith(line, "@")) {
+            if (!is.null(header)) {
+              # add the current record if it exists
+              data$raw_seq[[length(data$raw_seq)+1]] <- list(header = header, sequence = sequence, quality = quality)
+            }
+            header <- sub("^@", "", line)
+          }
+          else if (position == 1) {
+            sequence <- line
+          }
+          else if (position == 2 && startsWith(line, "+")) {
+            ln <- ln + 1
+            next
+          }
+          else if (position == 3) {
+            quality <- convert_quality(line, encoding = encoding)
+          }
+          else {
+            # incorrect format
+            stop(paste("ERROR: Failed to parse FASTQ at line:", ln))
+          }
+          ln <- ln + 1
+        }
+        # handle last entry
+        data$raw_seq[[length(data$raw_seq)+1]] <- list(header = header, sequence = sequence, quality = quality)
+      },
+      error = function(e) {
+        # if error in parsing, reset raw_seq list
+        warning(e)
+        data$raw_seq <- list()
+      },
+      warning = function(w) {
+        warning(w)
+      }
+    )
+    close(con)
+    
+    if(inherits(res, "error")){
+      print(res)
+    }
+  }
+}
+
+convert_quality <- function(line, encoding = "sanger", ...) {
   # @arg line: string of encoded quality scores
   # @return vector of converted integer values
+  
+  #validate quality scoring method
+  encoding <- match.arg(tolower(encoding), c("sanger", "solexa", "illumina1.3", "illumina1.5", "illumina1.8"))
   
   # remove trailing whitespace (incl. line break)
   # split string into character vector
@@ -123,18 +141,29 @@ convert_quality <- function(line, quality_scoring = "sanger", ...) {
   
   result <- vector() 
   
-  
+  min <- 0
+  max <- 40
   for (letter in line) {
-    if (quality_scoring == "sanger") {
+    if (encoding == "sanger") {
       score <- utf8ToInt(letter) - 33
-      min <- 0
     }
-    else if(quality_scoring == "solexa") {
-      score <- utf8ToInt(letter) - 59
+    else if(encoding == "solexa") {
+      score <- utf8ToInt(letter) - 64
       min <- -5
     }
+    else if(encoding == "illumina1.3") {
+      score <- utf8ToInt(letter) - 64
+    }
+    else if(encoding == "illumina1.5") {
+      score <- utf8ToInt(letter) - 64
+      min <- 3
+    }
+    else if(encoding == "illumina1.8") {
+      score <- utf8ToInt(letter) - 33
+      max <- 41
+    }
     
-    if (score < min | score > 41) {
+    if (score < min | score > max) {
       stop(paste("ERROR: Unexpected integer value in convert_quality():", score))
     } else {
       result <- c(result, score)
