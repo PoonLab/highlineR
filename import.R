@@ -1,4 +1,5 @@
-#TODO: nucleotide or amino acid data type
+# TODO: nucleotide or amino acid data type
+# TODO: import_raw_seq(vector)
 
 Data <-  function(path, datatype = tail(strsplit(path, "\\.")[[1]], n = 1)) {
   # @arg path absolute path to sequence file
@@ -7,8 +8,7 @@ Data <-  function(path, datatype = tail(strsplit(path, "\\.")[[1]], n = 1)) {
   
   # validate file exists
   if (!file.exists(path)) {
-    stop(paste("Error: file", path, "not found"),
-         call. = FALSE
+    stop(paste0("ERROR: file '", path, "' not found")
     )
   }
   
@@ -20,10 +20,9 @@ Data <-  function(path, datatype = tail(strsplit(path, "\\.")[[1]], n = 1)) {
     datatype <- "fastq"
   }
   else {
-    stop(paste("Error: file", path, "not imported. highlineR does not know how to handle files of type",
+    stop(paste0("ERROR: file '", path, "' not imported. highlineR does not know how to handle files of type ",
                datatype,
-               "and can only be used on fasta and fastq files"),
-         call. = FALSE
+               " and can only be used on fasta and fastq files")
     )
   }
   
@@ -54,6 +53,9 @@ remove_Data <- function(data, session = "highlineR.session") {
   # @arg data Data object or string name of Data object to be removed
   # @arg session session containing Data object to be removed
   # removes specified Data object from specified session environment
+  if (is.character(session)){
+    session <- get(session)
+  }
   
   if (is.character(data)) {
     # check if specified Data objec exists in specified session
@@ -143,13 +145,16 @@ import_raw_seq <- function(path, datatype, session = "highlineR.session", force 
   # @return environment containing imported sequence file(s) 
 
   # validate path
-  stopifnot(file.exists(path))
+  if(!file.exists(path)) {
+    stop(paste0("ERROR: path '", path, "' not valid"))
+  }
+  # stopifnot(file.exists(path))
   
   # if path is directory, import each file
   if (dir.exists(path)) {
     # remove trailing backslash
     path <- sub("\\/$", "", path)
-    tmp.list.1 <- list.files(path, full.names = TRUE)
+    tmp.list.1 <- list.files(path, full.names = TRUE, recursive = TRUE)
     
     for (i in 1:length(tmp.list.1)) {
       result <- tryCatch(
