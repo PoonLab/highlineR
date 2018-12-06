@@ -1,4 +1,12 @@
 library(ggplot2)
+library(reshape2)
+library(ggpubr)
+
+# TODO: custom melt
+# TODO: custom arrange
+# TODO: shared axes (facet? would fix ggarrange) 
+# TODO: aa -> mutation classes
+# TODO: sort by freq vs similarity
 
 summary.Data <- function(data, ...) {
   # @arg data highlineR Data object to be summarized
@@ -18,7 +26,7 @@ summary.Data <- function(data, ...) {
               seq_len = seq_len,
               var_num = var_num,
               abun_var = abun_var,
-              vars = var_counts.sorted)
+              vars = var_counts)
   class(res) <- "summary.Data"
   res
 }
@@ -84,19 +92,57 @@ sort.compressed <- function(compressed) {
 }
 
 
-plot.Data <- function(data, ...) {
-  data.matrix <- melt(data$seq_diff, na.rm = T)
-  colnames(data.matrix) <- c("seq", "position", "value")
-  ggplot(data.matrix, aes(x=position, y=seq, colour = value)) +
-    geom_point(shape = "|", size=rel(10))
-}
-
-seq_diff <- function(data, master) {
-  data$seq_diff <- matrix(ncol = nchar(data$raw_seq[[1]]$sequence), nrow = length(ls(data$compressed))-1)
+plot.Data <- function(data, master, order = "similarity",...) {
+  # @arg data highlineR data object to be plotted
+  # @arg master sequence to be used as master, optional, default: most abundant sequence
+  # @arg order ("similarity", "frequency") method to sort sequences by
   
+  order <- match.arg(tolower(order), c("similarity", "frequency"))
+  
+  # if master not specified, identify most abundant sequence
   if (missing(master)) {
     master <- rownames(sort(data$compressed))[1]
   }
+  
+  # identify mismatches from master
+  calc_seq_diff(data, master)
+  
+  # order of sequences
+  seqs = NULL
+  if (order == "similarity"){
+    seqs <- seq_simil(data$seq_diff)
+  }
+  else if (order == "frequency"){
+    seqs <- rownames(sort(data$compressed))[-1]
+  }
+  
+  # calculate relative abundances for line thickness
+  rel_abun <- calc_rel_abun(data$compressed, c(seqs, master))
+  
+  # melt data for ggplot
+  data_matrix <- melt(data$seq_diff, na.rm = T)
+  colnames(data_matrix) <- c("seq", "position", "value")
+  
+  # order sequences for plotting using seqs variable from above
+  data_matrix$seq <- factor(data_matrix$seq, levels = c(seqs, paste(master, "(m)")))
+  
+  gg <- ggplot(data_matrix, aes(x=position, y=seq, colour = value)) +
+    # plot horizontal lines with relative abundances
+    geom_hline(yintercept = 1:length(rel_abun), size = rel(rel_abun), color = "grey") +
+    # plot vertical lines for mismatches
+    geom_point(shape = "|", size=5) +
+    # prevent dropping of master sequence despite no points
+    scale_y_discrete(drop = FALSE) +
+    labs(x = "Alignment Position", y = element_blank(), title = "Mismatches compared to master")
+  gg
+}
+
+calc_seq_diff <- function(data, master) {
+  # @arg data highlineR Data object to calculate sequence differences
+  # @arg master sequence to which others will be compared
+  
+  data$seq_diff <- matrix(ncol = nchar(data$raw_seq[[1]]$sequence), nrow = length(ls(data$compressed))-1)
+  
   master_seq <- strsplit(master, "")[[1]]
   
   row_num <- 1
@@ -107,7 +153,7 @@ seq_diff <- function(data, master) {
       comp_seq <- strsplit(comp, "")[[1]]
       
       for (i in 1:length(master_seq)) { # for each positon
-        if(master_seq[i] != comp_seq[i]) {
+        if(master_seq[i] != comp_seq[i]) { # check if different
             data$seq_diff[row_num,i] <- comp_seq[i]
         }
       }
@@ -116,8 +162,35 @@ seq_diff <- function(data, master) {
     }
   }
   rownames(data$seq_diff) <- row_names
+  
 }
 
-plot.session <- function(session = highlineR.data, master) {
+calc_rel_abun <- function(compressed, seqs) {
+  # @arg compressed environment of variant counts
+  # @arg seqs sequence strings
   
+  res <- NULL
+  for (seq in seqs) {
+    res <- c(res, get(seq, envir = compressed)+1)
+  }
+  res
+}
+
+seq_simil <- function(seq_diff) {
+  # @arg seq_diff matrix of sequence differences
+  
+  simil <- NULL
+  for (r in rownames(seq_diff)) {
+    simil <- c(simil, length(which(!is.na(seq_diff[r,]))))
+  }
+  
+  # return sequences ordered by similarity
+  rownames(seq_diff)[rev(order(simil))]
+}
+
+plot.session <- function(session, master, ...) {
+  # @arg session highlineR session of Data objects to be plotted
+  
+  res <- eapply(session, plot)
+  ggarrange(plotlist = res, nrow = 1, ncol = length(ls(session)), common.legend = TRUE)
 }
