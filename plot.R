@@ -1,80 +1,117 @@
 library(ggplot2)
-library(reshape2)
 library(ggpubr)
+library(grid)
 
-# TODO: custom melt
 # TODO: custom arrange
 # TODO: shared axes (facet? would fix ggarrange) 
 # TODO: aa -> mutation classes
 # TODO: sort by freq vs similarity
 
-summary.Data <- function(data, ...) {
-  # @arg data highlineR Data object to be summarized
-  # @return list of summarized variables
+plot.session <- function(session, master, sort_by = "similarity", ...) {
+  # @arg session highlineR session of Data objects to be plotted
   
-  fn <- data$path # filename
-  dt <- class(data)[1] # datatype of file
-  seq_num <- length(data$raw_seq) # number of sequences
-  seq_len <- nchar(data$raw_seq[[1]]$sequence) # length of sequence
-  var_num <- length(ls(data$compressed)) # number of variants
-  var_counts <- sort(data$compressed) # variant counts sorted by abundance
-  abun_var <- rownames(var_counts)[1] # most abundant variant
+  # facets: issues, dropping unused without dropping master, using re_abun
+  res <- eapply(session, plot_init)
   
-  res <- list(fn = fn,
-              dt = dt,
-              seq_num = seq_num,
-              seq_len = seq_len,
-              var_num = var_num,
-              abun_var = abun_var,
-              vars = var_counts)
-  class(res) <- "summary.Data"
-  res
-}
-
-print.summary.Data <- function(x, ...) {
-  # print summary of Data object
+  data_matrix <- data.frame(matrix(nrow = 0, ncol = 4))
+  names(data_matrix) <- c("seq", "position", "value", "file")
   
-  cat("File: ")
-  cat(x$fn)
-  
-  cat("\nDatatype: ")
-  cat(x$dt)
-  
-  cat("\nNumber of Sequences: ")
-  cat(x$seq_num)
-  
-  cat("\nSequence Length: ")
-  cat(x$seq_len)
-  
-  cat("\nNumber of Variants: ")
-  cat(x$var_num)
-  
-  cat("\nMost Abundant Variant: ")
-  cat(x$abun_var)
-  cat("\n\nVariants:\n")
-  
-  print(x$vars)
-  
-  cat("\n")
-  cat(rep("_", 40))
-  cat("\n\n")
-}
-
-summary.session <- function(session, ...) {
-  # @arg session highlineR session of sequence Data objects to be summarized
-  # @return list of summarized variables for each sequence Data object
-  
-  res <- eapply(session, summary)
-  class(res) <- "summary.session"
-  res
-}
-
-print.summary.session <- function(x, ...) {
-  # print summary of each Data object in session
-  
-  for (i in 1:length(x)){
-    print(x[[i]])
+  for (i in 1:length(res)){
+    file_data <- res[[i]][[1]]
+    file_data$file <- names(res)[i]
+    data_matrix <- rbind(data_matrix, file_data)
   }
+  
+  gg <- ggplot(data_matrix, aes(x=position, y=seq, colour = value)) +
+    facet_wrap(~ file, scales = "free") +
+    # plot horizontal lines with relative abundances
+    # geom_hline(yintercept = 1:length(rel_abun), size = rel(rel_abun), color = "grey") +
+    # plot vertical lines for mismatches
+    geom_point(shape = "|", size=5) +
+    # prevent dropping of master sequence despite no points
+    # scale_y_discrete(drop = FALSE) +
+    labs(x = "Alignment Position", y = element_blank(), title = "Mismatches compared to master")
+  gg
+  
+  # grid doesn't solve anything
+  res <- eapply(session, plot)
+  grobs <- lapply(res, ggplotGrob)
+  plots <- grobs[[1]]
+  for (i in 2:length(grobs)){
+    plots <- rbind(plots, grobs[[i]], size = "last")
+  }
+  grid.newpage()
+  grid.draw(plots)
+  
+  ggarrange(plotlist = res, nrow = 1, ncol = length(ls(session)), common.legend = TRUE)
+}
+
+plot_init <- function(data, master, sort_by = "similarity", ...) {
+  sort_by <- match.arg(tolower(sort_by), c("similarity", "frequency"))
+  
+  # if master not specified, use most abundant sequence
+  if (missing(master)) {
+    master <- data$master
+  }
+  
+  # identify mismatches from master
+  calc_seq_diff(data, master)
+  
+  # order of sequences
+  seqs = NULL
+  if (sort_by == "similarity"){
+    seqs <- seq_simil(data$seq_diff)
+  }
+  else if (sort_by == "frequency"){
+    seqs <- rownames(sort(data$compressed))[-1]
+  }
+  
+  # calculate relative abundances for line thickness
+  rel_abun <- calc_rel_abun(data$compressed, c(seqs, master))
+  
+  # format data for plotting
+  data_matrix <- data_melt(data$seq_diff, seq_order = seqs, master = master)
+  
+  list(data_matrix, rel_abun)
+}
+
+plot.Data <- function(data, master, sort_by = "similarity", ...) {
+  # @arg data highlineR data object to be plotted
+  # @arg master sequence to be used as master, optional, default: most abundant sequence
+  # @arg order ("similarity", "frequency") method to sort sequences by
+  
+  # format data for plotting
+  res <- plot_init(data, master, sort_by)
+  data_matrix <- res[[1]]
+  rel_abun <- res[[2]]
+  
+  gg <- ggplot(data_matrix, aes(x=position, y=seq, colour = value)) +
+    # plot horizontal lines with relative abundances
+    geom_hline(yintercept = 1:length(rel_abun), size = rel(rel_abun), color = "grey") +
+    # plot vertical lines for mismatches
+    geom_point(shape = "|", size=5) +
+    # prevent dropping of master sequence despite no points
+    scale_y_discrete(drop = FALSE) +
+    labs(x = "Alignment Position", y = element_blank(), title = "Mismatches compared to master")
+  gg
+}
+
+data_melt <- function(seq_diff, seq_order, master, ...) {
+  data_matrix <- data.frame(matrix(nrow = 0, ncol = 3))
+  names(data_matrix) <- c("seq", "position", "value")
+  for (i in 1:nrow(seq_diff)) {
+    for (j in 1:ncol(seq_diff)) {
+      if (!is.na(seq_diff[i, j])){
+        data_matrix <- rbind(data_matrix, data.frame(seq=rownames(seq_diff)[i], position=j, value=seq_diff[i, j][[1]]))
+      }
+      
+    }
+  }
+  
+  # order sequences for plotting using seqs variable from above
+  data_matrix$seq <- factor(data_matrix$seq, levels = c(seq_order, paste(master, "(m)")))
+  
+  data_matrix
 }
 
 sort.compressed <- function(compressed) {
@@ -89,52 +126,6 @@ sort.compressed <- function(compressed) {
   colnames(var_counts.sorted) <- "freq"
   
   var_counts.sorted
-}
-
-
-plot.Data <- function(data, master, order = "similarity",...) {
-  # @arg data highlineR data object to be plotted
-  # @arg master sequence to be used as master, optional, default: most abundant sequence
-  # @arg order ("similarity", "frequency") method to sort sequences by
-  
-  order <- match.arg(tolower(order), c("similarity", "frequency"))
-  
-  # if master not specified, identify most abundant sequence
-  if (missing(master)) {
-    master <- rownames(sort(data$compressed))[1]
-  }
-  
-  # identify mismatches from master
-  calc_seq_diff(data, master)
-  
-  # order of sequences
-  seqs = NULL
-  if (order == "similarity"){
-    seqs <- seq_simil(data$seq_diff)
-  }
-  else if (order == "frequency"){
-    seqs <- rownames(sort(data$compressed))[-1]
-  }
-  
-  # calculate relative abundances for line thickness
-  rel_abun <- calc_rel_abun(data$compressed, c(seqs, master))
-  
-  # melt data for ggplot
-  data_matrix <- melt(data$seq_diff, na.rm = T)
-  colnames(data_matrix) <- c("seq", "position", "value")
-  
-  # order sequences for plotting using seqs variable from above
-  data_matrix$seq <- factor(data_matrix$seq, levels = c(seqs, paste(master, "(m)")))
-  
-  gg <- ggplot(data_matrix, aes(x=position, y=seq, colour = value)) +
-    # plot horizontal lines with relative abundances
-    geom_hline(yintercept = 1:length(rel_abun), size = rel(rel_abun), color = "grey") +
-    # plot vertical lines for mismatches
-    geom_point(shape = "|", size=5) +
-    # prevent dropping of master sequence despite no points
-    scale_y_discrete(drop = FALSE) +
-    labs(x = "Alignment Position", y = element_blank(), title = "Mismatches compared to master")
-  gg
 }
 
 calc_seq_diff <- function(data, master) {
@@ -188,9 +179,3 @@ seq_simil <- function(seq_diff) {
   rownames(seq_diff)[rev(order(simil))]
 }
 
-plot.session <- function(session, master, ...) {
-  # @arg session highlineR session of Data objects to be plotted
-  
-  res <- eapply(session, plot)
-  ggarrange(plotlist = res, nrow = 1, ncol = length(ls(session)), common.legend = TRUE)
-}

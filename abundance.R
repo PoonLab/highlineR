@@ -32,6 +32,8 @@ compress.Data <- function(data) {
     warning(paste("File", get(data, envir = session)$path, "ignored. Already compressed."))
   }
   else {
+    master <- list("", -1)
+    
     for (s in data$raw_seq){
       sequence <- s$sequence
       if (exists(sequence, envir = data$compressed)){
@@ -42,7 +44,12 @@ compress.Data <- function(data) {
         # otherwise, add sequence and initiate count
         data$compressed[[sequence]] <- 0
       }
+      if (data$compressed[[sequence]] > master[[2]]) {
+        # identify most abundant sequence
+        master <- list(sequence, data$compressed[[sequence]])
+      }
     }
+    data$master <- master[[1]]
   }
 }
 
