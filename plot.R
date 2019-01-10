@@ -5,45 +5,47 @@ library(grid)
 # TODO: custom arrange
 # TODO: shared axes (facet? would fix ggarrange) 
 # TODO: aa -> mutation classes
-# TODO: sort by freq vs similarity
+# TODO: store sequence groups
+# TODO: single variant files
 
 plot.session <- function(session, master, sort_by = "similarity", ...) {
   # @arg session highlineR session of Data objects to be plotted
   
   # facets: issues, dropping unused without dropping master, using re_abun
-  res <- eapply(session, plot_init)
-  
-  data_matrix <- data.frame(matrix(nrow = 0, ncol = 4))
-  names(data_matrix) <- c("seq", "position", "value", "file")
-  
-  for (i in 1:length(res)){
-    file_data <- res[[i]][[1]]
-    file_data$file <- names(res)[i]
-    data_matrix <- rbind(data_matrix, file_data)
-  }
-  
-  gg <- ggplot(data_matrix, aes(x=position, y=seq, colour = value)) +
-    facet_wrap(~ file, scales = "free") +
-    # plot horizontal lines with relative abundances
-    # geom_hline(yintercept = 1:length(rel_abun), size = rel(rel_abun), color = "grey") +
-    # plot vertical lines for mismatches
-    geom_point(shape = "|", size=5) +
-    # prevent dropping of master sequence despite no points
-    # scale_y_discrete(drop = FALSE) +
-    labs(x = "Alignment Position", y = element_blank(), title = "Mismatches compared to master")
-  gg
-  
-  # grid doesn't solve anything
   res <- eapply(session, plot)
-  grobs <- lapply(res, ggplotGrob)
-  plots <- grobs[[1]]
-  for (i in 2:length(grobs)){
-    plots <- rbind(plots, grobs[[i]], size = "last")
-  }
-  grid.newpage()
-  grid.draw(plots)
+  res
   
-  ggarrange(plotlist = res, nrow = 1, ncol = length(ls(session)), common.legend = TRUE)
+  # data_matrix <- data.frame(matrix(nrow = 0, ncol = 4))
+  # names(data_matrix) <- c("seq", "position", "value", "file")
+  # 
+  # for (i in 1:length(res)){
+  #   file_data <- res[[i]][[1]]
+  #   file_data$file <- names(res)[i]
+  #   data_matrix <- rbind(data_matrix, file_data)
+  # }
+  # 
+  # gg <- ggplot(data_matrix, aes(x=position, y=seq, colour = value)) +
+  #   facet_wrap(~ file, scales = "free") +
+  #   # plot horizontal lines with relative abundances
+  #   # geom_hline(yintercept = 1:length(rel_abun), size = rel(rel_abun), color = "grey") +
+  #   # plot vertical lines for mismatches
+  #   geom_point(shape = "|", size=5) +
+  #   # prevent dropping of master sequence despite no points
+  #   # scale_y_discrete(drop = FALSE) +
+  #   labs(x = "Alignment Position", y = element_blank(), title = "Mismatches compared to master")
+  # gg
+  # 
+  # # grid doesn't solve anything
+  # res <- eapply(session, plot)
+  # grobs <- lapply(res, ggplotGrob)
+  # plots <- grobs[[1]]
+  # for (i in 2:length(grobs)){
+  #   plots <- rbind(plots, grobs[[i]], size = "last")
+  # }
+  # grid.newpage()
+  # grid.draw(plots)
+  # 
+  # ggarrange(plotlist = res, nrow = 1, ncol = length(ls(session)), common.legend = TRUE)
 }
 
 plot_init <- function(data, master, sort_by = "similarity", ...) {
@@ -75,25 +77,46 @@ plot_init <- function(data, master, sort_by = "similarity", ...) {
   list(data_matrix, rel_abun)
 }
 
-plot.Data <- function(data, master, sort_by = "similarity", ...) {
+plot.Data <- function(data, master = data$master, sort_by = "similarity", ...) {
   # @arg data highlineR data object to be plotted
   # @arg master sequence to be used as master, optional, default: most abundant sequence
   # @arg order ("similarity", "frequency") method to sort sequences by
+  
+  if (length(data$compressed) == 0) {
+    warning(paste("File", data$path, "ignored. Run highlineR::compress(...)"))
+  }
   
   # format data for plotting
   res <- plot_init(data, master, sort_by)
   data_matrix <- res[[1]]
   rel_abun <- res[[2]]
   
+  # sequence labels for plotting
+  seqs <- ls(data$compressed) # list of variants
+  seq_groups <- paste0("v", 0:(length(seqs)-1)) # list of labels of form "v_n"
+  names(seq_groups) <- gsub(master, paste(master, "(m)"), seqs) # assign sequences to labels including master assignment
+  seq_groups[paste(master, "(m)")] <- paste(seq_groups[paste(master, "(m)")], "(m)")
+
   gg <- ggplot(data_matrix, aes(x=position, y=seq, colour = value)) +
     # plot horizontal lines with relative abundances
     geom_hline(yintercept = 1:length(rel_abun), size = rel(rel_abun), color = "grey") +
     # plot vertical lines for mismatches
     geom_point(shape = "|", size=5) +
     # prevent dropping of master sequence despite no points
-    scale_y_discrete(drop = FALSE) +
-    labs(x = "Alignment Position", y = element_blank(), title = "Mismatches compared to master")
-  gg
+    scale_y_discrete(drop = FALSE, labels = seq_groups) +
+    labs(x = "Alignment Position", y = element_blank(), title = "Mismatches compared to master", subtitle = data$path) +
+    theme_linedraw()
+  
+  if (inherits(data, "nucleotide")) {
+    gg + scale_color_manual(name = "Legend",
+                            breaks = c("A", "C", "G", "T", "-"),
+                            labels = c("A", "C", "G", "T", "Gap"),
+                            values = c("A" = "#00BF7D", "C" = "#00B0F6", "G" = "#A3A500", "T" = "#F8766D", "-" = "dark grey"))
+  }
+  else if (inherits(data, "amino acid")) {
+    # TODO: custom colouring
+    gg
+  }
 }
 
 data_melt <- function(seq_diff, seq_order, master, ...) {
