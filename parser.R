@@ -26,6 +26,8 @@ parse.fasta <- function(data, encoding = NULL, ...) {
     sequence <- ""
     ln <- 0
     
+    l <- -1 # sequence length
+    
     while( TRUE ) {
       line = readLines(con, n = 1)
       if (length(line) == 0) {
@@ -37,6 +39,9 @@ parse.fasta <- function(data, encoding = NULL, ...) {
         if (!is.null(header)) {
           # add the current record if it exists
           data$raw_seq[[length(data$raw_seq)+1]] <- list(header = header, sequence = sequence)
+          if (nchar(sequence) > l){
+            l <- nchar(sequence)
+          }
         }
         # start next record
         header <- sub("^>", "", line)
@@ -58,6 +63,14 @@ parse.fasta <- function(data, encoding = NULL, ...) {
     
     # handle last entry
     data$raw_seq[[length(data$raw_seq)+1]] <- list(header = header, sequence = sequence)
+    
+    # ensure sequences same length by adding gaps
+    for (i in 1:(length(data$raw_seq))) {
+      s <- data$raw_seq[[i]]
+      if (nchar(s$sequence) < l) {
+        data$raw_seq[[i]]$sequence <- paste0(s$sequence, paste(rep("-", l-nchar(s$sequence)), collapse = ""))
+      }
+    }
   }
 }
 
