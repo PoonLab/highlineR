@@ -1,4 +1,5 @@
 # TODO: import_raw_seq(vector)
+# TODO: store sequence groups
 
 Data <-  function(path, datatype = tail(strsplit(path, "\\.")[[1]], n = 1), seqtype = "nucleotide") {
   # @arg path absolute path to sequence file
@@ -13,7 +14,7 @@ Data <-  function(path, datatype = tail(strsplit(path, "\\.")[[1]], n = 1), seqt
   }
   
   # validate file type
-  if (tolower(datatype) %in% c("fasta", "fa")) {
+  if (tolower(datatype) %in% c("fasta", "fa", "fas")) {
     datatype <- "fasta"
   }
   else if (tolower(datatype) %in% c("fastq", "fq")) {
@@ -169,15 +170,21 @@ import_raw_seq <- function(path, datatype, seqtype, session = "highlineR.session
   if (dir.exists(path)) {
     # remove trailing backslash
     path <- sub("\\/$", "", path)
-    tmp.list.1 <- list.files(path, full.names = TRUE, recursive = TRUE)
+    tmp.list.1 <- list.files(path, full.names = TRUE)
     
     for (i in 1:length(tmp.list.1)) {
       result <- tryCatch(
-        if (missing(datatype)) {
+        if (missing(datatype) && missing(seqtype)) {
           import_file(tmp.list.1[i], session = session, force = force)
         }
-        else {
+        else if (missing(seqtype)) {
           import_file(tmp.list.1[i], datatype = datatype, session = session, force = force)
+        }
+        else if (missing(datatype)) {
+          import_file(tmp.list.1[i], seqtype = seqtype, session = session, force = force)
+        }
+        else {
+          import_file(tmp.list.1[i], datatype = datatype, seqtype = seqtype, session = session, force = force)
         }
       , error = function(e) {
         warning(e)
