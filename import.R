@@ -1,9 +1,9 @@
-# TODO: nucleotide or amino acid data type
 # TODO: import_raw_seq(vector)
 
-Data <-  function(path, datatype = tail(strsplit(path, "\\.")[[1]], n = 1)) {
+Data <-  function(path, datatype = tail(strsplit(path, "\\.")[[1]], n = 1), seqtype = "nucleotide") {
   # @arg path absolute path to sequence file
   # @arg datatype file type, default: file extension
+  # @arg seqtype sequence type, options: "nucleotide", "amino acid"
   # @return s3 Data object to hold raw and processed sequencing data for single file
   
   # validate file exists
@@ -26,6 +26,9 @@ Data <-  function(path, datatype = tail(strsplit(path, "\\.")[[1]], n = 1)) {
     )
   }
   
+  # validate sequence type
+  seqtype <- match.arg(tolower(seqtype), c("nucleotide", "amino acid"))
+  
   # create s3 Data structure
   data <- structure(
     as.environment(
@@ -41,7 +44,7 @@ Data <-  function(path, datatype = tail(strsplit(path, "\\.")[[1]], n = 1)) {
         seq_diff = matrix()
         )
       ), 
-    class = c(datatype, "Data", "environment")
+    class = c(datatype, seqtype, "Data", "environment")
     )
   
   parent.env(data$compressed) <- data
@@ -97,9 +100,10 @@ close_session <- function(session = "highlineR.session") {
   rm(list=paste(session), envir = .GlobalEnv)
 }
 
-import_file <- function(path, datatype, session, force = FALSE) {
+import_file <- function(path, datatype, seqtype, session, force = FALSE) {
   # @arg path: absolute path to sequence file
-  # @arg datatype: file type, optional
+  # @arg datatype: file type, optional, options: "fasta", "fastq"
+  # @arg seqtype sequence type, optional, options: "nucleotide", "amino acid"
   # @arg session: string name of environment to load sequence files into
   # imports file into specified session
   
@@ -115,6 +119,10 @@ import_file <- function(path, datatype, session, force = FALSE) {
     stopifnot(is.character(datatype))
   }
   
+  if (! missing(seqtype)) {
+    stopifnot(is.character(seqtype))
+  }
+  
   # create environment if it doesn't exist
   if (! exists(session)) {
     init_session(session)
@@ -126,11 +134,17 @@ import_file <- function(path, datatype, session, force = FALSE) {
   }
   # otherwise create Data object within specified session
   else {
-    if (missing(datatype)) {
+    if (missing(datatype) && missing(seqtype)) {
       data <- Data(path)
     }
-    else {
+    else if (missing(datatype)) {
+      data <- Data(path, seqtype = seqtype)
+    }
+    else if (missing(seqtype)) {
       data <- Data(path, datatype = datatype)
+    }
+    else {
+      data <- Data(path, datatype = datatype, seqtype = seqtype)
     }
     parent.env(data) <- get(session)
     assign(path, data, envir = get(session))
@@ -138,9 +152,10 @@ import_file <- function(path, datatype, session, force = FALSE) {
 }
 
 
-import_raw_seq <- function(path, datatype, session = "highlineR.session", force = FALSE) {
+import_raw_seq <- function(path, datatype, seqtype, session = "highlineR.session", force = FALSE) {
   # @arg path: absolute path to sequence file or directory containing sequence files
-  # @arg datatype: file type, optional
+  # @arg datatype: file type, optional, options: "fasta", "fastq"
+  # @arg seqtype sequence type, optional, options: "nucleotide", "amino acid"
   # @arg session: string name of environment to load sequence files to, default highlineR.data
   # @return environment containing imported sequence file(s) 
 
@@ -178,11 +193,17 @@ import_raw_seq <- function(path, datatype, session = "highlineR.session", force 
   }
   # if path is file, import file
   else {
-    if (missing(datatype)) {
+    if (missing(datatype) && missing(seqtype)) {
       import_file(path, session = session, force = force)
     }
-    else {
+    else if (missing(seqtype)) {
       import_file(path, datatype = datatype, session = session, force = force)
+    }
+    else if (missing(datatype)) {
+      import_file(path, seqtype = seqtype, session = session, force = force)
+    }
+    else {
+      import_file(path, datatype = datatype, seqtype = seqtype, session = session, force = force)
     }
     
   }

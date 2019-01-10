@@ -42,7 +42,10 @@ parse.fasta <- function(data, encoding = NULL, ...) {
         header <- sub("^>", "", line)
         sequence <- ""
       }
-      else if (grepl("^[A|T|G|C|-]", line)) {
+      else if (inherits(data, "nucleotide") && grepl("^[A|T|G|C|-]", line)) {
+        sequence <- paste0(sequence, line)
+      }
+      else if (inherits(data, "amino acid") && grepl("^[H|M|C|D|E|I|L|V|A|G|S|T|K|N|Q|R|F|W|Y|P|-]", line)) {
         sequence <- paste0(sequence, line)
       }
       else {
