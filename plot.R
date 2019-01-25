@@ -91,32 +91,67 @@ plot.Data <- function(data, master = data$master, sort_by = "similarity", ...) {
   data_matrix <- res[[1]]
   rel_abun <- res[[2]]
   
+  rel_abun_sum <- sqrt(rel_abun)
+  for (i in 2:length(rel_abun_sum)) {
+    rel_abun_sum[i] <- rel_abun_sum[i] + rel_abun_sum[i-1]
+  }
+
   # sequence labels for plotting
   seqs <- ls(data$compressed) # list of variants
-  seq_groups <- paste0("v", 0:(length(seqs)-1)) # list of labels of form "v_n"
-  names(seq_groups) <- gsub(master, paste(master, "(m)"), seqs) # assign sequences to labels including master assignment
-  seq_groups[paste(master, "(m)")] <- paste(seq_groups[paste(master, "(m)")], "(m)")
-
-  gg <- ggplot(data_matrix, aes(x=position, y=seq, colour = value)) +
-    # plot horizontal lines with relative abundances
-    geom_hline(yintercept = 1:length(rel_abun), size = rel(rel_abun), color = "grey") +
-    # plot vertical lines for mismatches
-    geom_point(shape = "|", size=5) +
-    # prevent dropping of master sequence despite no points
-    scale_y_discrete(drop = FALSE, labels = seq_groups) +
-    labs(x = "Alignment Position", y = element_blank(), title = "Mismatches compared to master", subtitle = data$path) +
-    theme_linedraw()
+  seq_groups <- vector()
+  for (s in seqs) {
+    for (i in 1:length(data$raw_seq)) {
+      if (data$raw_seq[[i]]$sequence == s) {
+        seq_groups <- c(seq_groups, data$raw_seq[[i]]$header)
+        break
+      }
+    }
+  }
+  print(seq_groups)
+  # seq_groups <- paste0("v", 0:(length(seqs)-1)) # list of labels of form "v_n"
+  seq_groups <- seq_groups[order(as.numeric(factor(gsub(master, paste(master, "(m)"), seqs), levels = levels(data_matrix$seq))))]
+  seq_groups[length(seqs)] <- paste(seq_groups[length(seqs)], "(m)")
   
-  if (inherits(data, "nucleotide")) {
-    gg + scale_color_manual(name = "Legend",
-                            breaks = c("A", "C", "G", "T", "-"),
-                            labels = c("A", "C", "G", "T", "Gap"),
-                            values = c("A" = "#00BF7D", "C" = "#00B0F6", "G" = "#A3A500", "T" = "#F8766D", "-" = "dark grey"))
-  }
-  else if (inherits(data, "amino acid")) {
-    # TODO: custom colouring
-    gg
-  }
+  # rel_abun_p <- ( (rel_abun_sum - min(rel_abun_sum)) / (max(rel_abun_sum) - min(rel_abun_sum)) ) * (100 - sqrt(max(rel_abun_sum)) - 1) + 1
+  rel_abun_p <- rel_abun_sum
+  
+  data_matrix$seq_plot_pos <- data_matrix$seq
+  levels(data_matrix$seq_plot_pos) <- rel_abun_p
+  data_matrix$rel_abun <- data_matrix$seq
+  levels(data_matrix$rel_abun) <- rel_abun
+  print(c("rel_abun", rel_abun))
+  print(c("rel_abun_sum", rel_abun_sum))
+  print(c("rel_abun_p", rel_abun_p))
+  
+
+  gg <- ggplot(data_matrix, aes(x=position, y=as.numeric(as.character(seq_plot_pos)))) +
+    # plot horizontal lines with relative abundances
+    geom_hline(yintercept = rel_abun_p, 
+              size = sqrt(as.numeric(as.character(rel_abun))), 
+               color = "grey") +
+    # plot vertical lines for mismatches
+    geom_point(shape = "|", 
+               aes(colour = value, 
+                   size=sqrt(as.numeric(as.character(rel_abun))))) +
+    # prevent dropping of master sequence despite no points
+    scale_y_continuous(limits = c(min(rel_abun_sum)-1, max(rel_abun_sum) + 1), breaks=rel_abun_p, labels = seq_groups) +
+    scale_x_continuous(limits = c(1, NA)) +
+    labs(x = "Alignment Position", y = element_blank(), title = "Mismatches compared to master", subtitle = data$path) +
+    theme_linedraw() +
+    theme(axis.text.x = element_text(size = rel(2)), axis.title.x = element_text(size = rel(3))) +
+    scale_size_identity()
+  
+  gg
+  # if (inherits(data, "nucleotide")) {
+  #   gg + scale_color_manual(name = "Legend",
+  #                           breaks = c("A", "C", "G", "T", "-"),
+  #                           labels = c("A", "C", "G", "T", "Gap"),
+  #                           values = c("A" = "#00BF7D", "C" = "#00B0F6", "G" = "#A3A500", "T" = "#F8766D", "-" = "dark grey"))
+  # }
+  # else if (inherits(data, "amino acid")) {
+  #   # TODO: custom colouring
+  #   gg
+  # }
 }
 
 data_melt <- function(seq_diff, seq_order, master, ...) {
@@ -151,7 +186,7 @@ sort.compressed <- function(compressed) {
   var_counts.sorted
 }
 
-calc_seq_diff <- function(data, master) {
+calc_seq_diff <- function(data, master, method = "svn") {
   # @arg data highlineR Data object to calculate sequence differences
   # @arg master sequence to which others will be compared
   
@@ -162,20 +197,69 @@ calc_seq_diff <- function(data, master) {
   row_num <- 1
   row_names <- NULL
   
-  for (comp in ls(data$compressed)) { # for each sequence in environment
-    if (comp != master) { # ignore master
-      comp_seq <- strsplit(comp, "")[[1]]
-      
-      for (i in 1:length(master_seq)) { # for each positon
-        if(master_seq[i] != comp_seq[i]) { # check if different
-            data$seq_diff[row_num,i] <- comp_seq[i]
+  if (method == "tvt") {
+    for (comp in ls(data$compressed)) { # for each sequence in environment
+      if (comp != master) { # ignore master
+        comp_seq <- strsplit(comp, "")[[1]]
+        
+        for (i in 1:length(master_seq)) { # for each positon
+          if(master_seq[i] != comp_seq[i]) { # check if different
+            if ((identical(sort(c(master_seq[i], comp_seq[i])), sort(c("A", "G")))) || (identical(sort(c(master_seq[i], comp_seq[i])), sort(c("C", "T"))))){
+              data$seq_diff[row_num,i] <- "transition"
+            }
+            else if (master_seq[i] != "-" && comp_seq[i] != "-") {
+              data$seq_diff[row_num,i] <- "transversion"
+            }
+            
+          }
         }
+        row_names <- c(row_names, comp)
+        row_num = row_num + 1
       }
-      row_names <- c(row_names, comp)
-      row_num = row_num + 1
     }
+    rownames(data$seq_diff) <- row_names
   }
-  rownames(data$seq_diff) <- row_names
+  else if(method == "svn") {
+    for (comp in ls(data$compressed)) { # for each sequence in environment
+      if (comp != master) { # ignore master
+        comp_seq <- strsplit(comp, "")[[1]]
+        n <- 1
+        
+        while ((n + 2) < length(master_seq)) {
+          master_codon <- paste(master_seq[n:(n+2)], collapse = "")
+          comp_codon <- paste(comp_seq[n:(n+2)], collapse = "")
+          if (master_codon != comp_codon) {
+            if (identical(aaLookup(master_codon), aaLookup(comp_codon))) {
+              data$seq_diff[row_num, (n - 1 + which(strsplit(master_codon, "")[[1]] != strsplit(comp_codon, "")[[1]]))] <- "synonymous"
+            }
+            else{
+              data$seq_diff[row_num,(n - 1 + which(strsplit(master_codon, "")[[1]] != strsplit(comp_codon, "")[[1]]))] <- "non-synonymous"
+            }
+          }
+          n = n + 3
+        }
+        row_names <- c(row_names, comp)
+        row_num = row_num + 1
+      }
+    }
+    rownames(data$seq_diff) <- row_names
+  }
+  else{
+    for (comp in ls(data$compressed)) { # for each sequence in environment
+      if (comp != master) { # ignore master
+        comp_seq <- strsplit(comp, "")[[1]]
+        
+        for (i in 1:length(master_seq)) { # for each positon
+          if(master_seq[i] != comp_seq[i]) { # check if different
+            data$seq_diff[row_num,i] <- comp_seq[i]
+          }
+        }
+        row_names <- c(row_names, comp)
+        row_num = row_num + 1
+      }
+    }
+    rownames(data$seq_diff) <- row_names
+  }
   
 }
 
@@ -202,3 +286,13 @@ seq_simil <- function(seq_diff) {
   rownames(seq_diff)[rev(order(simil))]
 }
 
+aaLookup<-function(x){
+  slc<-c("I","L","V","F","M","C","A","G","P","T","S","Y","W","Q","N","H","E","D","K","R","Stop")
+  codon<-c("ATT, ATC, ATA","CTT, CTC, CTA, CTG, TTA, TTG","GTT, GTC, GTA, GTG","TTT, TTC","ATG","TGT, TGC",
+           "GCT, GCC, GCA, GCG","GGT, GGC, GGA, GGG","CCT, CCC, CCA, CCG","ACT, ACC, ACA, ACG","TCT, TCC, TCA, TCG, AGT, AGC",
+           "TAT, TAC","TGG","CAA, CAG","AAT, AAC","CAT, CAC","GAA, GAG","GAT, GAC","AAA, AAG","CGT, CGC, CGA, CGG, AGA, AGG","TAA, TAG, TGA")
+  
+  codon.list<-strsplit(codon,",")
+  
+  slc[grep(x,codon.list)]
+}
