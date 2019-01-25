@@ -28,27 +28,50 @@ compress.Data <- function(data) {
     warning(paste("File", get(data, envir = session)$path, "ignored. Run highlineR::parse(...)"))
   }
   # ignore already compressed files
-  else if(length(data$compressed) != 0) {
-    warning(paste("File", get(data, envir = session)$path, "ignored. Already compressed."))
-  }
+  # else if(length(data$compressed) != 0) {
+  #   warning(paste("File", get(data, envir = session)$path, "ignored. Already compressed."))
+  # }
   else {
     master <- list("", -1)
     
-    for (s in data$raw_seq){
+    # for (s in data$raw_seq){
+    #   sequence <- s$sequence
+    #   if (exists(sequence, envir = data$compressed)){
+    #     # if sequence already in structure, increment count
+    #     data$compressed[[sequence]] <-data$compressed[[sequence]] + 1
+    #   }
+    #   else{
+    #     # otherwise, add sequence and initiate count
+    #     data$compressed[[sequence]] <- 0
+    #   }
+    #   if (data$compressed[[sequence]] > master[[2]]) {
+    #     # identify most abundant sequence
+    #     master <- list(sequence, data$compressed[[sequence]])
+    #   }
+    # }
+    
+    
+    for (s in data$raw_seq) {
+      header <- strsplit(s$header, "[_-]")[[1]]
+      count <- strtoi(trimws(header[length(header)]))
       sequence <- s$sequence
+
       if (exists(sequence, envir = data$compressed)){
         # if sequence already in structure, increment count
-        data$compressed[[sequence]] <-data$compressed[[sequence]] + 1 
+        data$compressed[[sequence]] <- data$compressed[[sequence]] + count
       }
       else{
         # otherwise, add sequence and initiate count
-        data$compressed[[sequence]] <- 0
+        data$compressed[[sequence]] <- count
       }
+
       if (data$compressed[[sequence]] > master[[2]]) {
         # identify most abundant sequence
         master <- list(sequence, data$compressed[[sequence]])
       }
+
     }
+    
     data$master <- master[[1]]
   }
 }
