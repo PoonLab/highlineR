@@ -1,10 +1,9 @@
 require(testthat, quietly=TRUE)
-setwd("/home/lisamonique/Documents/highlineR")
-source("import.R")
-source("parser.R")
+source("../import.R")
+source("../parser.R")
 
 test_that("fasta files parsed correctly", {
-  base <- "/home/lisamonique/Documents/highlineR/tests/test_data/valid/fasta/"
+  base <- paste0(getwd(), "/test_data/valid/fasta/")
   test_filename <- paste0(base, "test.fa")
   
   # parse valid fasta data object
@@ -54,7 +53,7 @@ test_that("quality score conversion correct", {
 })
 
 test_that("fastq files parsed correctly", {
-  base <- "/home/lisamonique/Documents/highlineR/tests/test_data/valid/fastq/"
+  base <- paste0(getwd(), "/test_data/valid/fastq/")
   test_filename <- paste0(base, "test.fq")
   
   # parse valid fastq data object
@@ -68,8 +67,8 @@ test_that("fastq files parsed correctly", {
       list("bob", "GCATCGTAGCTAGCTACGAT", convert_quality("1/04.72,(003,-2-22+0")),
       list("courtney", "CATCGATCGTACGTACGTAG", convert_quality("?7?AEEC@>=1?A?EEEB9E")),
       list("danny", "ATCGATCGATCGTACGATCG", convert_quality(">=2.660/?:36AD;0<147")),
-      list("john", "ACTGACTAGCTAGCTAACTG", convert_quality("8;;;>DC@DAC=B?C@9?B?")),
-      list("sam", "ACTGACTAGCTAGCTAACTG", convert_quality("-/CA:+<599803./2065?"))
+      list("john", "CATCGATCGTACGTACGTAG", convert_quality("8;;;>DC@DAC=B?C@9?B?")),
+      list("sam", "GCATCGTAGCTAGCTACGAT", convert_quality("-/CA:+<599803./2065?"))
     ),
     setNames,
     c("header", "sequence", "quality")
@@ -79,7 +78,7 @@ test_that("fastq files parsed correctly", {
 })
 
 test_that("invalid files not parsed", {
-  base <- "/home/lisamonique/Documents/highlineR/tests/test_data/valid/"
+  base <- paste0(getwd(), "/test_data/valid/")
   
   # import fasta format file as fastq and parse
   test_filename <- paste0(base, "fasta/test.fa")
@@ -95,18 +94,18 @@ test_that("invalid files not parsed", {
   test_filename <- paste0(base, "fasta/test.fa")
   test_Data <- Data(test_filename)
   parse(test_Data)
-  expect_warning(parse(test_Data), "ERROR: file '/home/lisamonique/Documents/highlineR/tests/test_data/valid/fasta/test.fa' ignored. Already parsed.")
+  expect_warning(parse(test_Data), paste0("ERROR: file '", getwd(), "/test_data/valid/fasta/test.fa' ignored. Already parsed."))
 })
 
 test_that("directories can be parsed", {
-  base <- "/home/lisamonique/Documents/highlineR/tests/test_data/valid/"
+  base <- paste0(getwd(), "/test_data/valid/fasta/")
   if (exists("test_sess")){
     rm (test_sess, envir = .GlobalEnv)
   }
   
   test <- import_raw_seq(base, session = "test_sess")
   expect_error(parse(test), NA)
-  expect_setequal(ls(test), c(paste0(base, "fasta/test.fa"), paste0(base, "fastq/test.fq"), paste0(base, "fasta/test2.fa")))
+  expect_setequal(ls(test), c(paste0(base, "test.fa"), paste0(base, "test2.fa")))
   
   if (exists("test_sess")){
     rm (test_sess, envir = .GlobalEnv)

@@ -1,7 +1,6 @@
 require(testthat, quietly=TRUE)
-setwd("/home/lisamonique/Documents/highlineR")
-source("import.R")
-base <- "/home/lisamonique/Documents/highlineR/tests/test_data/"
+source("../import.R")
+base <- paste0(getwd(), "/test_data/")
 
 
 test_that("invalid files do not open", {
@@ -97,7 +96,7 @@ test_that("sessions initate correctly with or without file import", {
   
   # import already imported file
   expect_warning(import_raw_seq(test_filename, session = "test_sess_2"),
-                 "File /home/lisamonique/Documents/highlineR/tests/test_data/valid/fasta/test.fa ignored. Already imported in test_sess_2 session")
+                 paste0("File ", base, "valid/fasta/test.fa ignored. Already imported in test_sess_2 session"))
   expect_equal(expected_session, test_sess_2) # no new file added
   
   # import already imported file, forced
