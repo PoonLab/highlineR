@@ -47,11 +47,14 @@ parse.fasta <- function(data, encoding = NULL, ...) {
         header <- sub("^>", "", line)
         sequence <- ""
       }
-      else if (inherits(data, "nucleotide") && grepl("^[A|T|G|C|-]", line)) {
+      else if (inherits(data, "nucleotide") && grepl("^[ATGC-]", line)) {
         sequence <- paste0(sequence, line)
       }
-      else if (inherits(data, "amino acid") && grepl("^[H|M|C|D|E|I|L|V|A|G|S|T|K|N|Q|R|F|W|Y|P|-]", line)) {
+      else if (inherits(data, "amino acid") && grepl("^[HMCDEILVAGSTKNQRFWYP-]", line)) {
         sequence <- paste0(sequence, line)
+      }
+      else if (line == "") {
+        next
       }
       else {
         # incorrect format
@@ -187,6 +190,34 @@ convert_quality <- function(line, encoding = "sanger", ...) {
   }
   
   result
+}
+
+parse.csv <- function(data, encoding, ...) {
+  dt <- read.csv(data$path, sep=",", header = T, stringsAsFactors = F)
+  l <- -1 # sequence length
+  
+  for (i in 1:nrow(dt)) {
+    header <- paste(dt[i, "refname"], dt[i, "count"], sep = "_")
+    # add gaps based on alignment offset
+    sequence <- paste0(paste(rep("-", dt[i, "offset"]- (min(dt$offset))), collapse = ""), dt[i, "seq"])
+    
+    # ignore sequences with ambiguous bases
+    if (grepl("N", toupper(sequence))) {
+      next
+    }
+    # keep track of maximum sequence length
+    if (nchar(sequence) > l){
+      l <- nchar(sequence)
+    }
+    data$raw_seq[[length(data$raw_seq)+1]] <- list(header = header, sequence = sequence)
+  }
+  # ensure sequences are the same length
+  for (i in 1:(length(data$raw_seq))) {
+    s <- data$raw_seq[[i]]
+    if (nchar(s$sequence) < l) {
+      data$raw_seq[[i]]$sequence <- paste0(s$sequence, paste(rep("-", l-nchar(s$sequence)), collapse = ""))
+    }
+  }
 }
 
 parse.default <- function(data) {

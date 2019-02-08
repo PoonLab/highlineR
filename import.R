@@ -20,6 +20,9 @@ Data <-  function(path, datatype = tail(strsplit(path, "\\.")[[1]], n = 1), seqt
   else if (tolower(datatype) %in% c("fastq", "fq")) {
     datatype <- "fastq"
   }
+  else if (tolower(datatype) == "csv") {
+    datatype <- "csv"
+  }
   else {
     stop(paste0("ERROR: file '", path, "' not imported. highlineR does not know how to handle files of type ",
                datatype,
