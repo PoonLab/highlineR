@@ -2,7 +2,6 @@ library(ggplot2)
 library(ggpubr)
 
 # TODO: custom arrange
-# TODO: specify reading frame
 
 
 plot.session <- function(session, mode = "mismatch", master, sort_by, rf = 1, ...) {
@@ -122,7 +121,7 @@ plot.Data <- function(data, session_plot = F, mode = "mismatch", master = data$m
     labs(x = "Alignment Position", y = element_blank(), title = modetotitle(mode), subtitle = filename[length(filename)]) +
     theme_classic() +
     theme(axis.text = element_text(size = rel(1)), axis.title.x = element_text(size = rel(2))) +
-    theme(legend.position = "top") +
+    theme(legend.position = "right") +
     scale_size_identity()
   if (session_plot == T) {
     gg <- gg + labs(x = element_blank(), title = element_blank())
@@ -236,23 +235,26 @@ calc_seq_diff <- function(data, mode, master, rf) {
   row_names <- NULL
   
   if (mode == "tvt") { # transitions vs transversions
+    md <- which(master_seq != "-")
     for (comp in ls(data$compressed)) { # for each sequence in environment
       if (comp != master) { # ignore master
         comp_seq <- strsplit(comp, "")[[1]]
         
-        for (i in 1:length(master_seq)) { # for each positon
-          if(master_seq[i] != comp_seq[i]) { # check if different
-            # if A <-> G or C <-> T: transition
-            if ((identical(sort(c(master_seq[i], comp_seq[i])), sort(c("A", "G")))) || (identical(sort(c(master_seq[i], comp_seq[i])), sort(c("C", "T"))))){
-              data$seq_diff[row_num,i] <- "transition"
-            }
-            # other nucleotide substitutions: transversion
-            else if (master_seq[i] != "-" && comp_seq[i] != "-") {
-              data$seq_diff[row_num,i] <- "transversion"
-            }
-            
+        mismatches <- which(master_seq != comp_seq)
+        valid <- intersect(md, which(comp_seq != "-"))
+        mismatches <- intersect(mismatches, valid)
+        
+        for (i in mismatches) {
+          # if A <-> G or C <-> T: transition
+          if ((identical(sort(c(master_seq[i], comp_seq[i])), sort(c("A", "G")))) || (identical(sort(c(master_seq[i], comp_seq[i])), sort(c("C", "T"))))){
+            data$seq_diff[row_num,i] <- "transition"
+          }
+          # other nucleotide substitutions: transversion
+          else if (master_seq[i] != "-" && comp_seq[i] != "-") {
+            data$seq_diff[row_num,i] <- "transversion"
           }
         }
+        
         row_names <- c(row_names, comp)
         row_num = row_num + 1
       }
@@ -272,10 +274,10 @@ calc_seq_diff <- function(data, mode, master, rf) {
           ccj <- paste(comp_codon, collapse = "")
           
           if (mcj != ccj) { # check if codons different
-            # if ("-" %in% master_codon || "-" %in% comp_codon) {
-            #   n = n + 3
-            #   next
-            # }
+            if ("-" %in% master_codon || "-" %in% comp_codon) {
+              n = n + 3
+              next
+            }
             if (identical(aaLookup(mcj), aaLookup(ccj))) { # check if encoded amino acid different
               data$seq_diff[row_num, (n - 1 + which(master_codon != comp_codon))] <- "synonymous"
             }
@@ -296,16 +298,14 @@ calc_seq_diff <- function(data, mode, master, rf) {
       if (comp != master) { # ignore master
         comp_seq <- strsplit(comp, "")[[1]]
         
-        for (i in 1:length(master_seq)) { # for each positon
-          if(master_seq[i] != comp_seq[i]) { # check if different
-            if (master_seq[i] == "-") { # if position in master is gap, record as deletion in variant
-              data$seq_diff[row_num,i] <- "del"
-            }
-            else { # otherwise record mutation
-              data$seq_diff[row_num,i] <- comp_seq[i]
-            }
-          }
-        }
+        # record mismatches
+        mismatches <- which(master_seq != comp_seq)
+        data$seq_diff[row_num, mismatches] <- comp_seq[mismatches]
+        
+        # if position in master is gap, record as deletion in variant
+        deletions <- which(master_seq == "-")
+        data$seq_diff[row_num, intersect(mismatches, deletions)] <- "del" 
+
         row_names <- c(row_names, comp)
         row_num = row_num + 1
       }
