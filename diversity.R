@@ -1,3 +1,20 @@
+calc_Diversity <- function(x) {
+  UseMethod("calc_Diversity", x)
+}
+calc_Diversity.session <- function(session) {
+  # eapply(session, calc_Diversity)
+  dt <- data.frame(matrix(ncol = 3))
+  colnames(dt) <- c("Shannon Entropy", "Percent Complexity", "Nucleotide Diversity")
+  for (data in ls(session)) {
+    dt <- cbind(dt, calc_Diversity(session[[data]]))
+  }
+  dt
+}
+
+calc_Diversity.Data <- function(data) {
+  print(c(Shannon_Entropy(data), Percent_Complexity(data), Nucleotide_Diversity(data)))
+}
+
 Shannon_Entropy <- function(data) {
   H <- 0 # result
   dt <- t(data.frame(strsplit(ls(data$compressed), ""))) # unique variants as dataframe
@@ -9,7 +26,7 @@ Shannon_Entropy <- function(data) {
     v <- as.data.frame(table(dt[, l]))[, 2] # freq of each nucleotide at position l
     H <- H + -sum(v * log2(v))
   }
-  print(H/L)
+  H/L
  }
 
 Percent_Complexity <- function(data) {
@@ -61,9 +78,4 @@ Nucleotide_Diversity <- function(data) {
 
 Percent_Diversity <- function(data) {
   # TODO: average pairwise genetic distance between two sequences, others used MEGA
-}
-
-
-Branch_length <- function(data) {
-  # TODO: requires a method to reconstruct tree, ggtree?
 }
