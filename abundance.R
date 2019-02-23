@@ -18,8 +18,7 @@ compress.session <- function(session) {
   }
 }
 
-
-compress.Data <- function(data) {
+compress.csv <- function(data) {
   # @arg data: Data object containing parsed list of sequences
   # populates Data object's compressed environment with (sequence: abunance) key:value pairs
   
@@ -27,6 +26,7 @@ compress.Data <- function(data) {
   if (length(data$raw_seq) == 0) {
     warning(paste("File", data$path, "ignored. Run highlineR::parse(...)"))
   }
+  
   # ignore already compressed files
   else if(length(data$compressed) != 0) {
     warning(paste("File", data$path, "ignored. Already compressed."))
@@ -34,28 +34,11 @@ compress.Data <- function(data) {
   else {
     master <- list("", -1)
     
-    # for (s in data$raw_seq){
-    #   sequence <- s$sequence
-    #   if (exists(sequence, envir = data$compressed)){
-    #     # if sequence already in structure, increment count
-    #     data$compressed[[sequence]] <-data$compressed[[sequence]] + 1
-    #   }
-    #   else{
-    #     # otherwise, add sequence and initiate count
-    #     data$compressed[[sequence]] <- 0
-    #   }
-    #   if (data$compressed[[sequence]] > master[[2]]) {
-    #     # identify most abundant sequence
-    #     master <- list(sequence, data$compressed[[sequence]])
-    #   }
-    # }
-    
-    
     for (s in data$raw_seq) {
       header <- strsplit(s$header, "[_-]")[[1]]
       count <- strtoi(trimws(header[length(header)]))
       sequence <- s$sequence
-
+      
       if (exists(sequence, envir = data$compressed)){
         # if sequence already in structure, increment count
         data$compressed[[sequence]] <- data$compressed[[sequence]] + count
@@ -64,12 +47,48 @@ compress.Data <- function(data) {
         # otherwise, add sequence and initiate count
         data$compressed[[sequence]] <- count
       }
-
+      
       if (data$compressed[[sequence]] > master[[2]]) {
         # identify most abundant sequence
         master <- list(sequence, data$compressed[[sequence]])
       }
-
+      
+    }
+    
+    data$master <- master[[1]]
+    read_sample(data)
+  }
+}
+compress.Data <- function(data) {
+  # @arg data: Data object containing parsed list of sequences
+  # populates Data object's compressed environment with (sequence: abunance) key:value pairs
+  
+  # ignore unparsed files
+  if (length(data$raw_seq) == 0) {
+    warning(paste("File", data$path, "ignored. Run highlineR::parse(...)"))
+  }
+  
+  # ignore already compressed files
+  else if(length(data$compressed) != 0) {
+    warning(paste("File", data$path, "ignored. Already compressed."))
+  }
+  else {
+    master <- list("", -1)
+    
+    for (s in data$raw_seq){
+      sequence <- s$sequence
+      if (exists(sequence, envir = data$compressed)){
+        # if sequence already in structure, increment count
+        data$compressed[[sequence]] <-data$compressed[[sequence]] + 1
+      }
+      else{
+        # otherwise, add sequence and initiate count
+        data$compressed[[sequence]] <- 0
+      }
+      if (data$compressed[[sequence]] > master[[2]]) {
+        # identify most abundant sequence
+        master <- list(sequence, data$compressed[[sequence]])
+      }
     }
     
     data$master <- master[[1]]
@@ -84,7 +103,7 @@ compress.default <- function(x){
                 "and can only be used on sessions or Data objects."))
 }
 
-read_sample <- function(data) {
+read_sample <- function(data, reads = 500) {
   rm(list = ls(data$sample), envir = data$sample)
   dt <- data.frame(matrix(ncol = 3, nrow = length(data$compressed)))
   colnames(dt) <- c("seq", "reads", "f")
@@ -94,7 +113,7 @@ read_sample <- function(data) {
   }
   N <- sum(dt$reads)
   dt$f <- dt$reads/N
-  samp <- sample(dt$seq, 10000, prob = dt$f, replace = T)
+  samp <- sample(dt$seq, reads, prob = dt$f, replace = T)
   list2env(as.list(table(samp)), envir = data$sample)
 }
 

@@ -44,6 +44,11 @@ Data <-  function(path, datatype = tail(strsplit(path, "\\.")[[1]], n = 1), seqt
             new.env(),
             class = c("compressed", "environment")
             ),
+        sample = 
+          structure(
+            new.env(),
+            class = c("compressed", "environment")
+          ),
         master = character(),
         seq_diff = matrix()
         )
@@ -52,6 +57,7 @@ Data <-  function(path, datatype = tail(strsplit(path, "\\.")[[1]], n = 1), seqt
     )
   
   parent.env(data$compressed) <- data
+  parent.env(data$sample) <- data
   
   data
 }

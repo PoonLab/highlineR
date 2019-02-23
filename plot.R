@@ -34,7 +34,7 @@ plot.Data <- function(data, session_plot = F, mode = "mismatch", master = data$m
   
   print(paste("Plotting:", data$path))
   
-  if (length(data$compressed) == 0) {
+  if (length(data$sample) == 0) {
     stop(paste("File", data$path, "ignored. Run highlineR::compress(...)"))
   }
   
@@ -73,7 +73,7 @@ plot.Data <- function(data, session_plot = F, mode = "mismatch", master = data$m
   }
   
   # sequence labels for plotting
-  seqs <- ls(data$compressed) # list of variants
+  seqs <- ls(data$sample) # list of variants
   seq_groups <- vector()
   for (s in seqs) {
     for (i in 1:length(data$raw_seq)) {
@@ -129,21 +129,21 @@ plot.Data <- function(data, session_plot = F, mode = "mismatch", master = data$m
   print(mode)
   if (inherits(data, "nucleotide")) {
     if (mode == "mismatch"){
-      gg + scale_color_manual(name = "Legend",
+      gg <- gg + scale_color_manual(name = "Legend",
                               breaks = c("A", "C", "G", "T", "-", "del"),
                               labels = c("A", "C", "G", "T", "Gap", ""),
                               values = c("A" = "#00BF7D", "C" = "#00B0F6", "G" = "#A3A500", "T" = "#F8766D", "-" = "dark grey", "del" = "white"),
                               drop = FALSE)
     }
     else if(mode == "tvt") {
-      gg + scale_color_manual(name = "Legend",
+      gg <- gg + scale_color_manual(name = "Legend",
                               drop = FALSE,
                              breaks = c("transition", "transversion"),
                              labels = c("Transition", "Transversion"),
                              values = c("transition" = "#00BF7D", "transversion" = "#00B0F6"))
     }
     else if (mode == "svn") {
-      gg + scale_color_manual(name = "Legend",
+      gg <- gg + scale_color_manual(name = "Legend",
                               drop = FALSE,
                               breaks = c("synonymous", "non-synonymous"),
                               labels = c("Synonymous", "Non-Synonymous"),
@@ -151,10 +151,12 @@ plot.Data <- function(data, session_plot = F, mode = "mismatch", master = data$m
     }
    
   }
-  else if (inherits(data, "amino acid")) {
-    # TODO: custom colouring
-    gg
-  }
+  # else if (inherits(data, "amino acid")) {
+  #   # TODO: custom colouring
+  #   gg <- gg
+  # }
+  ggsave(paste0(data$path, ".pdf"), plot = gg, device = "pdf", width = 10, height = 12, units = "in", dpi = 300)
+  gg
 }
 
 plot_init <- function(data, mode, master, sort_by = "similarity", rf, ...) {
@@ -177,12 +179,12 @@ plot_init <- function(data, mode, master, sort_by = "similarity", rf, ...) {
     seqs <- seq_simil(data$seq_diff)
   }
   else if (sort_by == "frequency"){
-    seqs <- rownames(sort(data$compressed))[-1]
+    seqs <- rownames(sort(data$sample))[-1]
   }
   
   # calculate relative abundances for line thickness
   print(".... Calculating relative frequencies")
-  rel_abun <- calc_rel_abun(data$compressed, c(seqs, master))
+  rel_abun <- calc_rel_abun(data$sample, c(seqs, master))
   
   # format data for plotting
   print(".... Formatting data for plotting")
@@ -227,7 +229,7 @@ calc_seq_diff <- function(data, mode, master, rf) {
   # @arg data highlineR Data object to calculate sequence differences
   # @arg master sequence to which others will be compared
   
-  data$seq_diff <- matrix(ncol = nchar(data$raw_seq[[1]]$sequence), nrow = length(ls(data$compressed))-1)
+  data$seq_diff <- matrix(ncol = nchar(data$raw_seq[[1]]$sequence), nrow = length(ls(data$sample))-1)
  
   master_seq <- strsplit(master, "")[[1]]
   
@@ -236,7 +238,7 @@ calc_seq_diff <- function(data, mode, master, rf) {
   
   if (mode == "tvt") { # transitions vs transversions
     md <- which(master_seq != "-")
-    for (comp in ls(data$compressed)) { # for each sequence in environment
+    for (comp in ls(data$sample)) { # for each sequence in environment
       if (comp != master) { # ignore master
         comp_seq <- strsplit(comp, "")[[1]]
         
@@ -262,7 +264,7 @@ calc_seq_diff <- function(data, mode, master, rf) {
     rownames(data$seq_diff) <- row_names
   }
   else if(mode == "svn") { # synonymous vs non-synonymous
-    for (comp in ls(data$compressed)) { # for each sequence in environment
+    for (comp in ls(data$sample)) { # for each sequence in environment
       if (comp != master) { # ignore master
         comp_seq <- strsplit(comp, "")[[1]]
         n <- rf # start position in sequences (depends on reading frame selected)
@@ -294,7 +296,7 @@ calc_seq_diff <- function(data, mode, master, rf) {
     rownames(data$seq_diff) <- row_names
   }
   else if (mode == "mismatch") { # mismatches compared to master
-    for (comp in ls(data$compressed)) { # for each sequence in environment
+    for (comp in ls(data$sample)) { # for each sequence in environment
       if (comp != master) { # ignore master
         comp_seq <- strsplit(comp, "")[[1]]
         
