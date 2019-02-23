@@ -2,13 +2,12 @@ calc_Diversity <- function(x) {
   UseMethod("calc_Diversity", x)
 }
 calc_Diversity.session <- function(session) {
-  # eapply(session, calc_Diversity)
-  dt <- data.frame(matrix(ncol = 4, nrow = 0))
+  n <- ls(session)
+  names(n) <- ls(session)
+  res <- mclapply(n, function(data) calc_Diversity(session[[data]]))
+  dt <- data.frame(t(sapply(res,c)))
   colnames(dt) <- c("Shannon Entropy", "Percent Complexity", "Nucleotide Diversity", "Percent Diversity")
-  for (data in ls(session)) {
-    dt[session[[data]]$path, ] <- calc_Diversity(session[[data]])
-  }
-  write.csv(dt, file = "diversity.csv")
+  write.csv(res, file = "diversity.csv")
   dt
 }
 
