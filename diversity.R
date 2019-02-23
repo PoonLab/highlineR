@@ -3,16 +3,17 @@ calc_Diversity <- function(x) {
 }
 calc_Diversity.session <- function(session) {
   # eapply(session, calc_Diversity)
-  dt <- data.frame(matrix(ncol = 3))
-  colnames(dt) <- c("Shannon Entropy", "Percent Complexity", "Nucleotide Diversity")
+  dt <- data.frame(matrix(ncol = 4, nrow = 0))
+  colnames(dt) <- c("Shannon Entropy", "Percent Complexity", "Nucleotide Diversity", "Percent Diversity")
   for (data in ls(session)) {
-    dt <- cbind(dt, calc_Diversity(session[[data]]))
+    dt[session[[data]]$path, ] <- calc_Diversity(session[[data]])
   }
+  write.csv(dt, file = "diversity.csv")
   dt
 }
 
 calc_Diversity.Data <- function(data) {
-  print(c(Shannon_Entropy(data), Percent_Complexity(data), Nucleotide_Diversity(data)))
+  c(Shannon_Entropy(data), Percent_Complexity(data), Nucleotide_Diversity(data), Percent_Diversity(data))
 }
 
 Shannon_Entropy <- function(data) {
@@ -78,4 +79,14 @@ Nucleotide_Diversity <- function(data) {
 
 Percent_Diversity <- function(data) {
   # TODO: average pairwise genetic distance between two sequences, others used MEGA
+  seqs <- vector()
+  for(s in ls(data$compressed)) {
+    seqs <- c(seqs, rep(s, data$compressed[[s]]))
+  }
+  y <- t(sapply(strsplit(seqs, split = ""), tolower))
+  rownames(y) <-seqs
+  
+  db <- as.DNAbin(y)
+  res <- dist.dna(db, as.matrix=T, model='raw', pairwise.deletion=T)
+  mean(res[upper.tri(res)])
 }
