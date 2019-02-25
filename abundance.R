@@ -103,7 +103,7 @@ compress.default <- function(x){
                 "and can only be used on sessions or Data objects."))
 }
 
-read_sample <- function(data, reads = 500) {
+read_sample <- function(data, reads = 500, M = 10) {
   rm(list = ls(data$sample), envir = data$sample)
   dt <- data.frame(matrix(ncol = 3, nrow = length(data$compressed)))
   colnames(dt) <- c("seq", "reads", "f")
@@ -113,8 +113,15 @@ read_sample <- function(data, reads = 500) {
   }
   N <- sum(dt$reads)
   dt$f <- dt$reads/N
-  samp <- sample(dt$seq, reads, prob = dt$f, replace = T)
-  list2env(as.list(table(samp)), envir = data$sample)
+  res <- data.frame(matrix(nrow = nrow(dt), ncol = M))
+  rownames(res) <- dt$seq
+  for (i in 1:M){
+    samp <- sample(dt$seq, reads, prob = dt$f, replace = T)
+    comp_samp <- as.data.frame(table(samp), stringsAsFactors = F)
+    res[comp_samp$samp,i] <- comp_samp$Freq
+  }
+  ave <- round(rowMeans(res[complete.cases(res),], na.rm = T))
+  list2env(as.list(ave), envir = data$sample)
 }
 
 resample <- function(x) {
