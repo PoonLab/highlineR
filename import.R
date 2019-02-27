@@ -1,6 +1,3 @@
-# TODO: import_raw_seq(vector)
-# TODO: store sequence groups
-
 Data <-  function(path, datatype = tail(strsplit(path, "\\.")[[1]], n = 1), seqtype = "nucleotide") {
   # @arg path absolute path to sequence file
   # @arg datatype file type, default: file extension
@@ -115,6 +112,7 @@ import_file <- function(path, datatype, seqtype, session, force = FALSE) {
   # @arg datatype: file type, optional, options: "fasta", "fastq"
   # @arg seqtype sequence type, optional, options: "nucleotide", "amino acid"
   # @arg session: string name of environment to load sequence files into
+  # @arg force: logical, should previously imported files be re-imported (replaced)
   # imports file into specified session
   
   if (missing(session)) {
@@ -124,6 +122,7 @@ import_file <- function(path, datatype, seqtype, session, force = FALSE) {
   
   stopifnot(is.character(path))
   stopifnot(file.exists(path))
+  stopifnot(is.logical(force))
   
   if (! missing(datatype)) {
     stopifnot(is.character(datatype))
@@ -167,19 +166,28 @@ import_raw_seq <- function(path, datatype, seqtype, session = "highlineR.session
   # @arg datatype: file type, optional, options: "fasta", "fastq"
   # @arg seqtype sequence type, optional, options: "nucleotide", "amino acid"
   # @arg session: string name of environment to load sequence files to, default highlineR.data
+  # @arg force: logical, should previously imported files be re-imported (replaced)
   # @return environment containing imported sequence file(s) 
 
   # validate path
-  if(!file.exists(path)) {
-    stop(paste0("ERROR: path '", path, "' not valid"))
+  if (length(path) == 1) {
+    if(!file.exists(path)) {
+      stop(paste0("ERROR: path '", path, "' not valid"))
+    }
   }
-  # stopifnot(file.exists(path))
   
-  # if path is directory, import each file
-  if (dir.exists(path)) {
-    # remove trailing backslash
-    path <- sub("\\/$", "", path)
-    tmp.list.1 <- list.files(path, full.names = TRUE)
+  # if path is directory or list of files, import each file
+  if (length(path) >1 || dir.exists(path)) {
+    tmp.list.1 <- ""
+    if (length(path) == 1) {
+      # remove trailing backslash
+      path <- sub("\\/$", "", path)
+      tmp.list.1 <- list.files(path, full.names = TRUE)
+    }
+    else{
+      tmp.list.1 <- path
+    }
+    
     
     for (i in 1:length(tmp.list.1)) {
       result <- tryCatch(
