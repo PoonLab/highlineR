@@ -1,10 +1,12 @@
-compress <- function(x){
+compress <- function(x, ...){
   UseMethod("compress", x)
 }
 
 
-compress.session <- function(session) {
+compress.session <- function(session, reads, M) {
   # @arg session: environment containing imported and parsed sequence Data objects
+  # @arg reads: expected number of reads
+  # @arg M: number of random samples to average
   # populates each Data object's compressed environment with calculated sequence abundances
   
   # validate session contains imported sequences
@@ -13,13 +15,32 @@ compress.session <- function(session) {
   }
   
   # calculate sequence abundance for each Data object
-  for (data in ls(session)) {
-    compress(get(data, envir = session, inherits = FALSE))
+  if (missing(reads) && missing(M)) {
+    for (data in ls(session)) {
+      compress(get(data, envir = session, inherits = FALSE))
+    }
+  }
+  else if (missing(reads)) {
+    for (data in ls(session)) {
+      compress(get(data, envir = session, inherits = FALSE), M = M)
+    }
+  }
+  else if (missing(M)) {
+    for (data in ls(session)) {
+      compress(get(data, envir = session, inherits = FALSE), reads = reads)
+    }
+  }
+  else {
+    for (data in ls(session)) {
+      compress(get(data, envir = session, inherits = FALSE), M = M, reads = reads)
+    }
   }
 }
 
-compress.csv <- function(data) {
+compress.csv <- function(data, reads, M) {
   # @arg data: Data object containing parsed list of sequences
+  # @arg reads: expected number of reads
+  # @arg M: number of random samples to average
   # populates Data object's compressed environment with (sequence: abunance) key:value pairs
   
   # ignore unparsed files
@@ -56,11 +77,24 @@ compress.csv <- function(data) {
     }
     
     data$master <- master[[1]]
-    read_sample(data)
+    if (missing(reads) && missing(M)) {
+      read_sample(data)
+    }
+    else if (missing(reads)) {
+      read_sample(data, M = M)
+    }
+    else if (missing(M)) {
+      read_sample(data, reads = reads)
+    }
+    else {
+      read_sample(data, M = M, reads = reads)
+    }
   }
 }
-compress.Data <- function(data) {
+compress.Data <- function(data, reads, M) {
   # @arg data: Data object containing parsed list of sequences
+  # @arg reads: expected number of reads
+  # @arg M: number of random samples to average
   # populates Data object's compressed environment with (sequence: abunance) key:value pairs
   
   # ignore unparsed files
@@ -92,7 +126,18 @@ compress.Data <- function(data) {
     }
     
     data$master <- master[[1]]
-    read_sample(data)
+    if (missing(reads) && missing(M)) {
+      read_sample(data)
+    }
+    else if (missing(reads)) {
+      read_sample(data, M = M)
+    }
+    else if (missing(M)) {
+      read_sample(data, reads = reads)
+    }
+    else {
+      read_sample(data, M = M, reads = reads)
+    }
   }
 }
 
@@ -104,6 +149,11 @@ compress.default <- function(x){
 }
 
 read_sample <- function(data, reads = 500, M = 10) {
+  # @arg data: Data object from which to sample
+  # @arg reads: expected number of reads
+  # @arg M: number of random samples to average
+  # samples`reads` number of sequences from compressed sequences M times and stores average result in data$sample
+
   rm(list = ls(data$sample), envir = data$sample)
   dt <- data.frame(matrix(ncol = 3, nrow = length(data$compressed)))
   colnames(dt) <- c("seq", "reads", "f")
@@ -127,9 +177,29 @@ read_sample <- function(data, reads = 500, M = 10) {
 resample <- function(x) {
   UseMethod("resample", x)
 }
-resample.Data <- function(data) {
-  read_sample(data)
+
+resample.Data <- function(data, reads, M) {
+  # @arg data: Data object from which to sample
+  # @arg reads: expected number of reads
+  # @arg M: number of random samples to average
+  # resamples compressed sequences without re-compresing
+  
+  if (missing(reads) && missing(M)) {
+    read_sample(data)
+  }
+  else if (missing(reads)) {
+    read_sample(data, M = M)
+  }
+  else if (missing(M)) {
+    read_sample(data, reads = reads)
+  }
+  else {
+    read_sample(data, M = M, reads = reads)
+  }
 }
+
 resample.session <- function(session) {
+  # @arg session: environment containing imported and parsed sequence Data objects
+  # resamples all Data objects in session
   eapply(session, resample)
 }
