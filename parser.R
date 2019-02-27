@@ -3,7 +3,9 @@ parse <- function(x, ...) {
 }
 
 parse.session <- function(session, encoding = "sanger", ...) {
-  #arg session: environment containing imported sequence Data objects
+  # @arg session: environment containing imported sequence Data objects
+  # @arg encoding: FASTQ file quality score encoding. Options: "Sanger", "Solexa", "Illumina1.3", "Illumina1.5". "Illumina1.8"
+  # parses all Data objects in session
   
   for (data in ls(session)) {
     parse(get(data, envir = session, inherits = FALSE), encoding = encoding)
@@ -12,6 +14,7 @@ parse.session <- function(session, encoding = "sanger", ...) {
 
 parse.fasta <- function(data, encoding = NULL, ...) {
   # @arg data: Data object containing absolute or relative path to a FASTA file
+  # @arg encoding: ignored
   # populates Data object's raw_seq list with (header, sequence) lists
   
   # ignore already parsed files
@@ -79,7 +82,7 @@ parse.fasta <- function(data, encoding = NULL, ...) {
 
 parse.fastq <- function(data, encoding = "sanger", ...) {
   # @arg data: Data object containing absolute or relative path to a FASTQ file
-  # @arg encoding FASTQ file quality score encoding. Options: "Sanger", "Solexa", "Illumina1.3", "Illumina1.5". "Illumina1.8"
+  # @arg encoding: FASTQ file quality score encoding. Options: "Sanger", "Solexa", "Illumina1.3", "Illumina1.5". "Illumina1.8"
   # populates Data object's raw_seq list with (header, sequence, quality scores) lists
   
   # ignore already parsed files
@@ -149,6 +152,7 @@ parse.fastq <- function(data, encoding = "sanger", ...) {
 
 convert_quality <- function(line, encoding = "sanger", ...) {
   # @arg line: string of encoded quality scores
+  # @arg encoding: quality score encoding. Options: "Sanger", "Solexa", "Illumina1.3", "Illumina1.5". "Illumina1.8"
   # @return vector of converted integer values
   
   #validate quality scoring method
@@ -192,7 +196,11 @@ convert_quality <- function(line, encoding = "sanger", ...) {
   result
 }
 
-parse.csv <- function(data, encoding, ...) {
+parse.csv <- function(data, encoding = NULL, ...) {
+  # @arg data: Data object containing absolute or relative path to a csv file
+  # @arg encoding: ignored
+  # parses custom format csv files and populates Data object's raw_seq list with (header, sequence) lists
+  
   dt <- read.csv(data$path, sep=",", header = T, stringsAsFactors = F)
   l <- -1 # sequence length
   
