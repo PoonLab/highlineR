@@ -97,7 +97,12 @@ plot.Data <- function(data, session_plot = F, mode = "mismatch", master = data$m
   data_matrix$rel_abun <- data_matrix$seq
   levels(data_matrix$rel_abun) <- rel_abun
   if (mode == "mismatch") {
-    data_matrix$value <- factor(data_matrix$value, levels = c("A", "C", "G", "T", "-", "del"))
+    if (inherits(data, "nucleotide")) {    
+      data_matrix$value <- factor(data_matrix$value, levels = c("A", "C", "G", "T", "-", "del"))
+    }
+    else if (inherits(data, "amino acid")) {    
+      data_matrix$value <- factor(data_matrix$value, levels = c("H", "DE", "KNQR", "M", "ILV", "FWY", "C", "AGST", "P", "-", "del"))
+    }
   }
   else if (mode == "tvt") {
     data_matrix$value <- factor(data_matrix$value, levels = c("transition", "transversion"))
@@ -155,10 +160,14 @@ plot.Data <- function(data, session_plot = F, mode = "mismatch", master = data$m
     }
    
   }
-  # else if (inherits(data, "amino acid")) {
-  #   # TODO: custom colouring
-  #   gg <- gg
-  # }
+  else if (inherits(data, "amino acid")) {
+    # TODO: custom colouring
+  gg <- gg + scale_color_manual(name = "Legend",
+                                  drop = FALSE,
+                                  breaks = c("H", "DE", "KNQR", "M", "ILV", "FWY", "C", "AGST", "P", "-", "del"),
+                                  labels = c("His", "Asp, Glu", "Lys, Asn, Gln, Arg", "Met", "Ile, Leu, Val", "Phe, Trp, Tyr", "Cys", "Ala, Gly, Ser, Thr", "Pro", "Gap", ""),
+                                  values = c("H" = "blue", "DE" = "navyblue", "KNQR" = "skyblue", "M" = "darkgreen", "ILV" = "green", "FWY" = "magenta", "C" = "red", "AGST" = "orange", "P" = "yellow", "-" = "dark grey", "del" = "white"))
+  }
   ggsave(paste0(data$path, ".pdf"), plot = gg, device = "pdf", width = 10, height = 16, units = "in", dpi = 300)
   gg
 }
@@ -316,7 +325,11 @@ calc_seq_diff <- function(data, mode, master, rf) {
         }
       }
       rownames(data$seq_diff) <- row_names
-      #TODO convert for colouring
+      data$seq_diff[which(data$seq_diff %in% c("D", "E"))] <- "DE"
+      data$seq_diff[which(data$seq_diff %in% c("I", "L", "V"))] <- "ILV"
+      data$seq_diff[which(data$seq_diff %in% c("F", "W", "Y"))] <- "FWY"
+      data$seq_diff[which(data$seq_diff %in% c("A", "G", "S", "T"))] <- "AGST"
+      data$seq_diff[which(data$seq_diff %in% c("K", "N", "Q", "R"))] <- "KNQR"
     }
     
   }
