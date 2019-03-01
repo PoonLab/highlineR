@@ -1,11 +1,13 @@
 library(ggplot2)
 library(ggpubr)
 
-# TODO: custom arrange
-
-
 plot.session <- function(session, mode = "mismatch", master, sort_by, rf = 1, ...) {
-  # @arg session highlineR session of Data objects to be plotted
+  # @arg session: highlineR session of Data objects to be plotted
+  # @arg mode: mutation annotation, optional. Options: "mismatch" (default), "svn" (Synonymous versus Non-Synonymous), "tvt" (Transition versus Transversion)
+  # @arg master: sequence to be used as master, optional, default: most abundant sequence
+  # @arg sort_by: how should sequences be ordered in plot. Options: "similarity", "frequency".
+  # @arg rf: reading frame for determining Synonymous versus Non-Synonymous mutations, optional. Options: 1 (default), 2, 3.
+  # @return plot of all Data in session
   
   if (missing(mode) && missing(sort_by)){
     res <- eapply(session, plot, session_plot = T, rf = rf)
@@ -28,10 +30,14 @@ plot.session <- function(session, mode = "mismatch", master, sort_by, rf = 1, ..
 
 
 plot.Data <- function(data, session_plot = F, mode = "mismatch", master = data$master, sort_by = "similarity", rf = 1, ...) {
-  # @arg data highlineR data object to be plotted
-  # @arg master sequence to be used as master, optional, default: most abundant sequence
-  # @arg order ("similarity", "frequency") mode to sort sequences by
-  
+  # @arg data: highlineR data object to be plotted
+  # @arg session_plot: logical. is plot being produced part of a session plot. default: FALSE
+  # @arg mode: mutation annotation, optional. Options: "mismatch" (default), "svn" (Synonymous versus Non-Synonymous), "tvt" (Transition versus Transversion)
+  # @arg master: sequence to be used as master, optional, default: most abundant sequence
+  # @arg sort_by: how should sequences be ordered in plot. Options: "similarity", "frequency".
+  # @arg rf: reading frame for determining Synonymous versus Non-Synonymous mutations, optional. Options: 1 (default), 2, 3.
+  # @return plot of data showing mutations in variants compared to master
+
   print(paste("Plotting:", data$path))
   
   if (length(data$sample) == 0) {
@@ -85,8 +91,6 @@ plot.Data <- function(data, session_plot = F, mode = "mismatch", master = data$m
   }
   seq_groups <- seq_groups[order(as.numeric(factor(gsub(master, paste(master, "(m)"), seqs), levels = levels(data_matrix$seq))))]
   seq_groups[length(seqs)] <- paste(seq_groups[length(seqs)], "(m)")
-  
-
   
   data_matrix$seq_plot_pos <- data_matrix$seq
   levels(data_matrix$seq_plot_pos) <- rel_abun_p
@@ -155,12 +159,20 @@ plot.Data <- function(data, session_plot = F, mode = "mismatch", master = data$m
   #   # TODO: custom colouring
   #   gg <- gg
   # }
-  ggsave(paste0(data$path, ".pdf"), plot = gg, device = "pdf", width = 10, height = 12, units = "in", dpi = 300)
+  ggsave(paste0(data$path, ".pdf"), plot = gg, device = "pdf", width = 10, height = 16, units = "in", dpi = 300)
   gg
 }
 
 plot_init <- function(data, mode, master, sort_by = "similarity", rf, ...) {
+  # @arg data: highlineR data object to be plotted
+  # @arg mode: mutation annotation, optional. Options: "mismatch" (default), "svn" (Synonymous versus Non-Synonymous), "tvt" (Transition versus Transversion)
+  # @arg master: sequence to be used as master, optional, default: most abundant sequence
+  # @arg sort_by: how should sequences be ordered in plot. Options: "similarity", "frequency".
+  # @arg rf: reading frame for determining Synonymous versus Non-Synonymous mutations, optional. Options: 1 (default), 2, 3.
+  # @return list of mutation data for ploting and relative abundances of variants
+  
   sort_by <- match.arg(tolower(sort_by), c("similarity", "frequency"))
+  mode <- match.arg(tolower(mode), c("mismatch", "svn", "tvt"))
   
   # if master not specified, use most abundant sequence
   if (missing(master)) {
@@ -193,44 +205,15 @@ plot_init <- function(data, mode, master, sort_by = "similarity", rf, ...) {
   list(data_matrix, rel_abun)
 }
 
-data_melt <- function(seq_diff, seq_order, master, ...) {
-  data_matrix <- data.frame(matrix(nrow = 0, ncol = 3))
-  names(data_matrix) <- c("seq", "position", "value")
-  for (i in 1:nrow(seq_diff)) {
-    for (j in 1:ncol(seq_diff)) {
-      if (!is.na(seq_diff[i, j])){
-        data_matrix <- rbind(data_matrix, data.frame(seq=rownames(seq_diff)[i], position=j, value=seq_diff[i, j][[1]]))
-      }
-      
-    }
-  }
-  
-  # order sequences for plotting using seqs variable from above
-  data_matrix$seq <- factor(data_matrix$seq, levels = c(seq_order, paste(master, "(m)")))
-  
-  data_matrix
-}
-
-sort.compressed <- function(compressed) {
-  # @arg compressed environment of variant counts
-  # @return matrix of variant counts sorted by abundance
-  
-  # convert environment of variant counts to matrix
-  var_counts <- (as.data.frame(as.list(compressed))) 
-  
-  # order variant matrix by abundance
-  var_counts.sorted <- t(var_counts[order(var_counts, decreasing = TRUE)])
-  colnames(var_counts.sorted) <- "freq"
-  
-  var_counts.sorted
-}
-
 calc_seq_diff <- function(data, mode, master, rf) {
-  # @arg data highlineR Data object to calculate sequence differences
+  # @arg data: highlineR Data object to calculate compositional differences
+  # @arg mode: mutation annotation. Options: "mismatch", "svn", "tvt"
   # @arg master sequence to which others will be compared
+  # @arg rf: reading frame for determining Synonymous versus Non-Synonymous mutations, optional. Options: 1, 2, 3.
+  # identifies compositional differences between sequences in data including annotations if applicable. stores result in data$seq_dif
   
   data$seq_diff <- matrix(ncol = nchar(data$raw_seq[[1]]$sequence), nrow = length(ls(data$sample))-1)
- 
+  
   master_seq <- strsplit(master, "")[[1]]
   
   row_num <- 1
@@ -296,40 +279,53 @@ calc_seq_diff <- function(data, mode, master, rf) {
     rownames(data$seq_diff) <- row_names
   }
   else if (mode == "mismatch") { # mismatches compared to master
-    for (comp in ls(data$sample)) { # for each sequence in environment
-      if (comp != master) { # ignore master
-        comp_seq <- strsplit(comp, "")[[1]]
-        
-        # record mismatches
-        mismatches <- which(master_seq != comp_seq)
-        data$seq_diff[row_num, mismatches] <- comp_seq[mismatches]
-        
-        # if position in master is gap, record as deletion in variant
-        deletions <- which(master_seq == "-")
-        data$seq_diff[row_num, intersect(mismatches, deletions)] <- "del" 
-
-        row_names <- c(row_names, comp)
-        row_num = row_num + 1
+    if (inherits(data, "nucleotide")) {
+      for (comp in ls(data$sample)) { # for each sequence in environment
+        if (comp != master) { # ignore master
+          comp_seq <- strsplit(comp, "")[[1]]
+          
+          # record mismatches
+          mismatches <- which(master_seq != comp_seq)
+          data$seq_diff[row_num, mismatches] <- comp_seq[mismatches]
+          
+          # if position in master is gap, record as deletion in variant
+          deletions <- which(master_seq == "-")
+          data$seq_diff[row_num, intersect(mismatches, deletions)] <- "del" 
+          
+          row_names <- c(row_names, comp)
+          row_num = row_num + 1
+        }
       }
+      rownames(data$seq_diff) <- row_names
     }
-    rownames(data$seq_diff) <- row_names
+    else if (inherits(data, "amino acid")) {
+      for (comp in ls(data$sample)) { # for each sequence in environment
+        if (comp != master) { # ignore master
+          comp_seq <- strsplit(comp, "")[[1]]
+          
+          # record mismatches
+          mismatches <- which(master_seq != comp_seq)
+          data$seq_diff[row_num, mismatches] <- comp_seq[mismatches]
+          
+          # if position in master is gap, record as deletion in variant
+          deletions <- which(master_seq == "-")
+          data$seq_diff[row_num, intersect(mismatches, deletions)] <- "del" 
+          
+          row_names <- c(row_names, comp)
+          row_num = row_num + 1
+        }
+      }
+      rownames(data$seq_diff) <- row_names
+      #TODO convert for colouring
+    }
+    
   }
   
-}
-
-calc_rel_abun <- function(compressed, seqs) {
-  # @arg compressed environment of variant counts
-  # @arg seqs sequence strings
-  
-  res <- NULL
-  for (seq in seqs) {
-    res <- c(res, get(seq, envir = compressed)+1)
-  }
-  res
 }
 
 seq_simil <- function(seq_diff) {
-  # @arg seq_diff matrix of sequence differences
+  # @arg seq_diff: matrix of compositional differences between sequences
+  # @return vector of sequences ordered by number of mutations (similarity) compared to master
   
   simil <- NULL
   for (r in rownames(seq_diff)) {
@@ -340,7 +336,60 @@ seq_simil <- function(seq_diff) {
   rownames(seq_diff)[rev(order(simil))]
 }
 
-aaLookup<-function(x){
+sort.compressed <- function(compressed) {
+  # @arg compressed environment of variant counts
+  # @return matrix of variant counts sorted by abundance
+  
+  # convert environment of variant counts to matrix
+  var_counts <- (as.data.frame(as.list(compressed))) 
+  
+  # order variant matrix by abundance
+  var_counts.sorted <- t(var_counts[order(var_counts, decreasing = TRUE)])
+  colnames(var_counts.sorted) <- "freq"
+  
+  var_counts.sorted
+}
+
+calc_rel_abun <- function(compressed, seqs) {
+  # @arg compressed: environment of variant counts
+  # @arg seqs: vector of sequences present in compressed in order of interest
+  # @return vector of read counts of seqs from compressed in order specified
+  
+  res <- NULL
+  for (seq in seqs) {
+    # retrieve sequence read counts from compressed
+    res <- c(res, get(seq, envir = compressed)+1)
+  }
+  res
+}
+
+data_melt <- function(seq_diff, seq_order, master, ...) {
+  # @arg seq_diff: matrix of compositional differnces between sequences
+  # @arg seq_order: vector of sequences in order they should be plotted
+  # @arg master: sequence to which others have been compared
+  # @return matrix of compositional differences between sequences in format required for ggplot plotting
+  
+  data_matrix <- data.frame(matrix(nrow = 0, ncol = 3))
+  names(data_matrix) <- c("seq", "position", "value")
+  for (i in 1:nrow(seq_diff)) {
+    for (j in 1:ncol(seq_diff)) {
+      if (!is.na(seq_diff[i, j])){
+        # convert data.frame to 3 columns: seq, position, value
+        data_matrix <- rbind(data_matrix, data.frame(seq=rownames(seq_diff)[i], position=j, value=seq_diff[i, j][[1]]))
+      }
+    }
+  }
+  
+  # order sequences for plotting using seqs variable from above
+  data_matrix$seq <- factor(data_matrix$seq, levels = c(seq_order, paste(master, "(m)")))
+  
+  data_matrix
+}
+
+aaLookup<-function(c){
+  # @arg c: sequence of three bases (codon)
+  # @return single letter code of amino acid encoded by codon
+  
   slc<-c("I","L","V","F","M","C","A","G","P","T","S","Y","W","Q","N","H","E","D","K","R","Stop")
   codon<-c("ATT, ATC, ATA","CTT, CTC, CTA, CTG, TTA, TTG","GTT, GTC, GTA, GTG","TTT, TTC","ATG","TGT, TGC",
            "GCT, GCC, GCA, GCG","GGT, GGC, GGA, GGG","CCT, CCC, CCA, CCG","ACT, ACC, ACA, ACG","TCT, TCC, TCA, TCG, AGT, AGC",
@@ -348,10 +397,14 @@ aaLookup<-function(x){
   
   codon.list<-strsplit(codon,",")
   
-  slc[grep(x,codon.list)]
+  # find codon in codon.list and retrun corresponding single letter code from slc
+  slc[grep(l,codon.list)]
 }
 
 modetotitle <- function(mode) {
+  # @arg mode: code for mutation annotion being plotted
+  # @return string representation of mode
+  
   titles <- c(mismatch = "Mismatches Compared to Master",
               tvt = "Transitions and Transversions",
               svn = "Synonymous and Non-Synonymous Mutations")
