@@ -197,15 +197,15 @@ plot_init <- function(data, mode, master, sort_by = "similarity", rf, ...) {
   print(".... Determining sequence order")
   seqs = NULL
   if (sort_by == "similarity"){
-    seqs <- seq_simil(data$seq_diff)
+    seqs <- c(seq_simil(data$seq_diff[-(nrow(data$seq_diff)),]), master)
   }
   else if (sort_by == "frequency"){
-    seqs <- rownames(sort(data$sample))[-1]
+    seqs <- rownames(sort(data$sample))
   }
   
   # calculate relative abundances for line thickness
   print(".... Calculating relative frequencies")
-  rel_abun <- calc_rel_abun(data$sample, c(seqs, master))
+  rel_abun <- calc_rel_abun(data$sample, seqs)
   
   # format data for plotting
   print(".... Formatting data for plotting")
@@ -221,12 +221,16 @@ calc_seq_diff <- function(data, mode, master, rf) {
   # @arg rf: reading frame for determining Synonymous versus Non-Synonymous mutations, optional. Options: 1, 2, 3.
   # identifies compositional differences between sequences in data including annotations if applicable. stores result in data$seq_dif
   
-  data$seq_diff <- matrix(ncol = nchar(data$raw_seq[[1]]$sequence), nrow = length(ls(data$sample))-1)
+  data$seq_diff <- matrix(ncol = nchar(data$raw_seq[[1]]$sequence), nrow = length(ls(data$sample)))
   
   master_seq <- strsplit(master, "")[[1]]
   
   row_num <- 1
   row_names <- NULL
+  
+  # if position in master is gap, record as deletion in variant
+  deletions <- which(master_seq == "-")
+  data$seq_diff[nrow(data$seq_diff), deletions] <- "del" 
   
   if (mode == "tvt") { # transitions vs transversions
     md <- which(master_seq != "-")
@@ -253,7 +257,7 @@ calc_seq_diff <- function(data, mode, master, rf) {
         row_num = row_num + 1
       }
     }
-    rownames(data$seq_diff) <- row_names
+    rownames(data$seq_diff) <- c(row_names, master)
   }
   else if(mode == "svn") { # synonymous vs non-synonymous
     for (comp in ls(data$sample)) { # for each sequence in environment
@@ -285,7 +289,7 @@ calc_seq_diff <- function(data, mode, master, rf) {
         row_num = row_num + 1
       }
     }
-    rownames(data$seq_diff) <- row_names
+    rownames(data$seq_diff) <- c(row_names, master)
   }
   else if (mode == "mismatch") { # mismatches compared to master
     if (inherits(data, "nucleotide")) {
@@ -297,15 +301,14 @@ calc_seq_diff <- function(data, mode, master, rf) {
           mismatches <- which(master_seq != comp_seq)
           data$seq_diff[row_num, mismatches] <- comp_seq[mismatches]
           
-          # if position in master is gap, record as deletion in variant
-          deletions <- which(master_seq == "-")
-          data$seq_diff[row_num, intersect(mismatches, deletions)] <- "del" 
+          # if position in master is gap, do not record mutation in variant
+          # data$seq_diff[row_num, intersect(mismatches, deletions)] <- NA
           
           row_names <- c(row_names, comp)
           row_num = row_num + 1
         }
       }
-      rownames(data$seq_diff) <- row_names
+      rownames(data$seq_diff) <- c(row_names, master)
     }
     else if (inherits(data, "amino acid")) {
       for (comp in ls(data$sample)) { # for each sequence in environment
@@ -316,15 +319,14 @@ calc_seq_diff <- function(data, mode, master, rf) {
           mismatches <- which(master_seq != comp_seq)
           data$seq_diff[row_num, mismatches] <- comp_seq[mismatches]
           
-          # if position in master is gap, record as deletion in variant
-          deletions <- which(master_seq == "-")
-          data$seq_diff[row_num, intersect(mismatches, deletions)] <- "del" 
+          # if position in master is gap, do not record mutation in variant
+          data$seq_diff[row_num, intersect(mismatches, deletions)] <- NA
           
           row_names <- c(row_names, comp)
           row_num = row_num + 1
         }
       }
-      rownames(data$seq_diff) <- row_names
+      rownames(data$seq_diff) <- c(row_names, master)
       data$seq_diff[which(data$seq_diff %in% c("D", "E"))] <- "DE"
       data$seq_diff[which(data$seq_diff %in% c("I", "L", "V"))] <- "ILV"
       data$seq_diff[which(data$seq_diff %in% c("F", "W", "Y"))] <- "FWY"
@@ -371,7 +373,7 @@ calc_rel_abun <- function(compressed, seqs) {
   res <- NULL
   for (seq in seqs) {
     # retrieve sequence read counts from compressed
-    res <- c(res, get(seq, envir = compressed)+1)
+    res <- c(res, get(seq, envir = compressed))
   }
   res
 }
@@ -394,7 +396,8 @@ data_melt <- function(seq_diff, seq_order, master, ...) {
   }
   
   # order sequences for plotting using seqs variable from above
-  data_matrix$seq <- factor(data_matrix$seq, levels = c(seq_order, paste(master, "(m)")))
+  data_matrix$seq <- factor(data_matrix$seq, levels = seq_order)
+  levels(data_matrix$seq)[levels(data_matrix$seq) == master] <- paste(master, "(m)")
   
   data_matrix
 }
