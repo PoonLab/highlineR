@@ -72,10 +72,12 @@ plot.Data <- function(data, session_plot = F, mode = "mismatch", master = data$m
   rel_abun_p[1] <- sqrt(rel_abun[1])/2
   l <- 0
   
-  for (i in 2:length(rel_abun_p)) {
-    p <- sqrt(rel_abun[i-1]) + sqrt(rel_abun[i])/2 + 5
-    rel_abun_p[i] <- p + l
-    l <- l + p
+  if (length(data$sample) > 1) {
+    for (i in 2:length(rel_abun_p)) {
+      p <- sqrt(rel_abun[i-1]) + sqrt(rel_abun[i])/2 + 5
+      rel_abun_p[i] <- p + l
+      l <- l + p
+    }
   }
   
   # sequence labels for plotting
@@ -105,10 +107,10 @@ plot.Data <- function(data, session_plot = F, mode = "mismatch", master = data$m
     }
   }
   else if (mode == "tvt") {
-    data_matrix$value <- factor(data_matrix$value, levels = c("transition", "transversion"))
+    data_matrix$value <- factor(data_matrix$value, levels = c("transition", "transversion", "del"))
   }
   else if (mode == "svn") {
-    data_matrix$value <- factor(data_matrix$value, levels = c("synonymous", "non-synonymous"))
+    data_matrix$value <- factor(data_matrix$value, levels = c("synonymous", "non-synonymous", "del"))
   }
   
   
@@ -120,21 +122,32 @@ plot.Data <- function(data, session_plot = F, mode = "mismatch", master = data$m
     geom_hline(yintercept = rel_abun_p, 
               size = sqrt(as.numeric(as.character(rel_abun))), 
                color = "grey") +
-    # plot vertical lines for mismatches
-    geom_point(shape = "|", 
-               aes(colour = value, 
-                   size=sqrt(as.numeric(as.character(rel_abun)))+1,
-                   stroke = 0)) +
-    scale_y_continuous(limits = c(min(rel_abun_p) - 0.1, max(rel_abun_p) + sqrt(max(rel_abun))/2), breaks=rel_abun_p, labels = seq_groups) +
-    scale_x_continuous(limits = c(1, NA)) +
-    labs(x = "Alignment Position", y = element_blank(), title = modetotitle(mode), subtitle = filename[length(filename)]) +
+    scale_x_continuous(limits = c(1, ncol(data$seq_diff))) +
     theme_classic() +
-    theme(axis.text = element_text(size = rel(1)), axis.title.x = element_text(size = rel(2))) +
+    theme(axis.text = element_text(size = rel(1))) +
     theme(legend.position = "right") +
-    scale_size_identity()
-  if (session_plot == T) {
-    gg <- gg + labs(x = element_blank(), title = element_blank())
+    scale_size_identity() 
+  if (nrow(data$seq_diff) > 1) {
+    # plot vertical lines for mismatches
+    gg <- gg +  geom_point(shape = "|", 
+                           aes(colour = value, 
+                               size=sqrt(as.numeric(as.character(rel_abun)))+1,
+                               stroke = 0)) +
+      scale_y_continuous(limits = c(min(rel_abun_p) - 0.1, max(rel_abun_p) + sqrt(max(rel_abun))/2), breaks=rel_abun_p, labels = seq_groups)
   }
+  else {
+    gg <- gg + scale_y_continuous(breaks=rel_abun_p, labels = seq_groups)
+  }
+  
+  if (session_plot == T) {
+    gg <- gg + labs(x = element_blank(), y = element_blank(), title = element_blank(), subtitle = filename[length(filename)])
+    print("here")
+  }
+  else {
+    gg <- gg + labs(x = "Alignment Position", y = element_blank(), title = modetotitle(mode), subtitle = filename[length(filename)]) +
+      theme(axis.title.x = element_text(size = rel(2)))
+  }
+  
   print(mode)
   if (inherits(data, "nucleotide")) {
     if (mode == "mismatch"){
@@ -147,28 +160,27 @@ plot.Data <- function(data, session_plot = F, mode = "mismatch", master = data$m
     else if(mode == "tvt") {
       gg <- gg + scale_color_manual(name = "Legend",
                               drop = FALSE,
-                             breaks = c("transition", "transversion"),
-                             labels = c("Transition", "Transversion"),
-                             values = c("transition" = "#00BF7D", "transversion" = "#00B0F6"))
+                             breaks = c("transition", "transversion", "del"),
+                             labels = c("Transition", "Transversion", ""),
+                             values = c("transition" = "#00BF7D", "transversion" = "#00B0F6", "del" = "white"))
     }
     else if (mode == "svn") {
       gg <- gg + scale_color_manual(name = "Legend",
                               drop = FALSE,
-                              breaks = c("synonymous", "non-synonymous"),
-                              labels = c("Synonymous", "Non-Synonymous"),
-                              values = c("synonymous" = "#00BF7D", "non-synonymous" = "#00B0F6"))
+                              breaks = c("synonymous", "non-synonymous", "del"),
+                              labels = c("Synonymous", "Non-Synonymous", ""),
+                              values = c("synonymous" = "#00BF7D", "non-synonymous" = "#00B0F6", "del" = "white"))
     }
    
   }
   else if (inherits(data, "amino acid")) {
-    # TODO: custom colouring
   gg <- gg + scale_color_manual(name = "Legend",
                                   drop = FALSE,
                                   breaks = c("H", "DE", "KNQR", "M", "ILV", "FWY", "C", "AGST", "P", "-", "del"),
                                   labels = c("His", "Asp, Glu", "Lys, Asn, Gln, Arg", "Met", "Ile, Leu, Val", "Phe, Trp, Tyr", "Cys", "Ala, Gly, Ser, Thr", "Pro", "Gap", ""),
                                   values = c("H" = "blue", "DE" = "navyblue", "KNQR" = "skyblue", "M" = "darkgreen", "ILV" = "green", "FWY" = "magenta", "C" = "red", "AGST" = "orange", "P" = "yellow", "-" = "dark grey", "del" = "white"))
   }
-  ggsave(paste0(data$path, ".pdf"), plot = gg, device = "pdf", width = 10, height = 16, units = "in", dpi = 300)
+  # ggsave(paste0(data$path, ".pdf"), plot = gg, device = "pdf", width = 10, height = 16, units = "in", dpi = 300)
   gg
 }
 
@@ -197,7 +209,7 @@ plot_init <- function(data, mode, master, sort_by = "similarity", rf, ...) {
   print(".... Determining sequence order")
   seqs = NULL
   if (sort_by == "similarity"){
-    seqs <- c(seq_simil(data$seq_diff[-(nrow(data$seq_diff)),]), master)
+    seqs <- c(seq_simil(subset(data$seq_diff, rownames(data$seq_diff) != master)), master)
   }
   else if (sort_by == "frequency"){
     seqs <- rownames(sort(data$sample))
@@ -302,7 +314,7 @@ calc_seq_diff <- function(data, mode, master, rf) {
           data$seq_diff[row_num, mismatches] <- comp_seq[mismatches]
           
           # if position in master is gap, do not record mutation in variant
-          # data$seq_diff[row_num, intersect(mismatches, deletions)] <- NA
+          data$seq_diff[row_num, intersect(mismatches, deletions)] <- NA
           
           row_names <- c(row_names, comp)
           row_num = row_num + 1
@@ -342,13 +354,18 @@ seq_simil <- function(seq_diff) {
   # @arg seq_diff: matrix of compositional differences between sequences
   # @return vector of sequences ordered by number of mutations (similarity) compared to master
   
-  simil <- NULL
-  for (r in rownames(seq_diff)) {
-    simil <- c(simil, length(which(!is.na(seq_diff[r,]))))
+  if (length(rownames(seq_diff)) > 1) {
+    simil <- NULL
+    for (r in rownames(seq_diff)) {
+      simil <- c(simil, length(which(!is.na(seq_diff[r,]))))
+    }
+    
+    # return sequences ordered by similarity
+    rownames(seq_diff)[rev(order(simil))]
   }
-  
-  # return sequences ordered by similarity
-  rownames(seq_diff)[rev(order(simil))]
+  else {
+    rownames(seq_diff)
+  }
 }
 
 sort.compressed <- function(compressed) {
@@ -356,10 +373,10 @@ sort.compressed <- function(compressed) {
   # @return matrix of variant counts sorted by abundance
   
   # convert environment of variant counts to matrix
-  var_counts <- (as.data.frame(as.list(compressed))) 
+  var_counts <- unlist(as.list(compressed))
   
   # order variant matrix by abundance
-  var_counts.sorted <- t(var_counts[order(var_counts, decreasing = TRUE)])
+  var_counts.sorted <- data.frame(var_counts[order(var_counts, decreasing = F)])
   colnames(var_counts.sorted) <- "freq"
   
   var_counts.sorted
@@ -386,11 +403,16 @@ data_melt <- function(seq_diff, seq_order, master, ...) {
   
   data_matrix <- data.frame(matrix(nrow = 0, ncol = 3))
   names(data_matrix) <- c("seq", "position", "value")
-  for (i in 1:nrow(seq_diff)) {
-    for (j in 1:ncol(seq_diff)) {
-      if (!is.na(seq_diff[i, j])){
-        # convert data.frame to 3 columns: seq, position, value
-        data_matrix <- rbind(data_matrix, data.frame(seq=rownames(seq_diff)[i], position=j, value=seq_diff[i, j][[1]]))
+  if (nrow(seq_diff) == 1) {
+    data_matrix[1,] <- c(rownames(seq_diff)[1], ncol(seq_diff), NA)
+  }
+  else{
+    for (i in 1:nrow(seq_diff)) {
+      for (j in 1:ncol(seq_diff)) {
+        if (!is.na(seq_diff[i, j])){
+          # convert data.frame to 3 columns: seq, position, value
+          data_matrix <- rbind(data_matrix, data.frame(seq=rownames(seq_diff)[i], position=j, value=seq_diff[i, j][[1]]))
+        }
       }
     }
   }
