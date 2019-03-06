@@ -3,7 +3,7 @@ compress <- function(x, ...){
 }
 
 
-compress.session <- function(session, reads, M) {
+compress.session <- function(session, reads = 500, M = 10, unique = F, force = F) {
   # @arg session: environment containing imported and parsed sequence Data objects
   # @arg reads: expected number of reads
   # @arg M: number of random samples to average
@@ -15,33 +15,18 @@ compress.session <- function(session, reads, M) {
   }
   
   # calculate sequence abundance for each Data object
-  if (missing(reads) && missing(M)) {
-    for (data in ls(session)) {
-      compress(get(data, envir = session, inherits = FALSE))
-    }
-  }
-  else if (missing(reads)) {
-    for (data in ls(session)) {
-      compress(get(data, envir = session, inherits = FALSE), M = M)
-    }
-  }
-  else if (missing(M)) {
-    for (data in ls(session)) {
-      compress(get(data, envir = session, inherits = FALSE), reads = reads)
-    }
-  }
-  else {
-    for (data in ls(session)) {
-      compress(get(data, envir = session, inherits = FALSE), M = M, reads = reads)
-    }
+  for (data in ls(session)) {
+    compress(get(data, envir = session, inherits = FALSE), M = M, reads = reads, unique = unique, force = force)
   }
 }
 
-compress.csv <- function(data, reads, M) {
+compress.Data <- function(data, reads = 500, M = 10, unique = F, force = F) {
   # @arg data: Data object containing parsed list of sequences
   # @arg reads: expected number of reads
   # @arg M: number of random samples to average
   # populates Data object's compressed environment with (sequence: abunance) key:value pairs
+  
+  stopifnot(is.logical(unique))
   
   # ignore unparsed files
   if (length(data$raw_seq) == 0) {
@@ -49,95 +34,55 @@ compress.csv <- function(data, reads, M) {
   }
   
   # ignore already compressed files
-  else if(length(data$compressed) != 0) {
+  else if(length(data$compressed) != 0 && force == F) {
     warning(paste("File", data$path, "ignored. Already compressed."))
   }
   else {
     master <- list("", -1)
     
-    for (s in data$raw_seq) {
-      header <- strsplit(s$header, "[_-]")[[1]]
-      count <- strtoi(trimws(header[length(header)]))
-      sequence <- s$sequence
-      
-      if (exists(sequence, envir = data$compressed)){
-        # if sequence already in structure, increment count
-        data$compressed[[sequence]] <- data$compressed[[sequence]] + count
+    if (unique == F) {
+      for (s in data$raw_seq){
+        sequence <- s$sequence
+        if (exists(sequence, envir = data$compressed)){
+          # if sequence already in structure, increment count
+          data$compressed[[sequence]] <-data$compressed[[sequence]] + 1
+        }
+        else{
+          # otherwise, add sequence and initiate count
+          data$compressed[[sequence]] <- 1
+        }
+        if (data$compressed[[sequence]] > master[[2]]) {
+          # identify most abundant sequence
+          master <- list(sequence, data$compressed[[sequence]])
+        }
       }
-      else{
-        # otherwise, add sequence and initiate count
-        data$compressed[[sequence]] <- count
-      }
-      
-      if (data$compressed[[sequence]] > master[[2]]) {
-        # identify most abundant sequence
-        master <- list(sequence, data$compressed[[sequence]])
-      }
-      
-    }
-    
-    data$master <- master[[1]]
-    if (missing(reads) && missing(M)) {
-      read_sample(data)
-    }
-    else if (missing(reads)) {
-      read_sample(data, M = M)
-    }
-    else if (missing(M)) {
-      read_sample(data, reads = reads)
     }
     else {
-      read_sample(data, M = M, reads = reads)
+      for (s in data$raw_seq) {
+        header <- strsplit(s$header, "[_-]")[[1]]
+        count <- strtoi(trimws(header[length(header)]))
+        sequence <- s$sequence
+        
+        if (exists(sequence, envir = data$compressed)){
+          # if sequence already in structure, increment count
+          data$compressed[[sequence]] <- data$compressed[[sequence]] + count
+        }
+        else{
+          # otherwise, add sequence and initiate count
+          data$compressed[[sequence]] <- count
+        }
+        
+        if (data$compressed[[sequence]] > master[[2]]) {
+          # identify most abundant sequence
+          master <- list(sequence, data$compressed[[sequence]])
+        }
+        
+      }
     }
-  }
-}
-compress.Data <- function(data, reads, M) {
-  # @arg data: Data object containing parsed list of sequences
-  # @arg reads: expected number of reads
-  # @arg M: number of random samples to average
-  # populates Data object's compressed environment with (sequence: abunance) key:value pairs
-  
-  # ignore unparsed files
-  if (length(data$raw_seq) == 0) {
-    warning(paste("File", data$path, "ignored. Run highlineR::parse(...)"))
-  }
-  
-  # ignore already compressed files
-  else if(length(data$compressed) != 0) {
-    warning(paste("File", data$path, "ignored. Already compressed."))
-  }
-  else {
-    master <- list("", -1)
     
-    for (s in data$raw_seq){
-      sequence <- s$sequence
-      if (exists(sequence, envir = data$compressed)){
-        # if sequence already in structure, increment count
-        data$compressed[[sequence]] <-data$compressed[[sequence]] + 1
-      }
-      else{
-        # otherwise, add sequence and initiate count
-        data$compressed[[sequence]] <- 0
-      }
-      if (data$compressed[[sequence]] > master[[2]]) {
-        # identify most abundant sequence
-        master <- list(sequence, data$compressed[[sequence]])
-      }
-    }
     
     data$master <- master[[1]]
-    if (missing(reads) && missing(M)) {
-      read_sample(data)
-    }
-    else if (missing(reads)) {
-      read_sample(data, M = M)
-    }
-    else if (missing(M)) {
-      read_sample(data, reads = reads)
-    }
-    else {
-      read_sample(data, M = M, reads = reads)
-    }
+    read_sample(data, M = M, reads = reads)
   }
 }
 
@@ -148,7 +93,7 @@ compress.default <- function(x){
                 "and can only be used on sessions or Data objects."))
 }
 
-read_sample <- function(data, reads = 500, M = 10) {
+read_sample <- function(data, reads, M) {
   # @arg data: Data object from which to sample
   # @arg reads: expected number of reads
   # @arg M: number of random samples to average
@@ -174,11 +119,11 @@ read_sample <- function(data, reads = 500, M = 10) {
   list2env(as.list(ave), envir = data$sample)
 }
 
-resample <- function(x) {
+resample <- function(x, ...) {
   UseMethod("resample", x)
 }
 
-resample.Data <- function(data, reads, M) {
+resample.Data <- function(data, reads = 500, M = 10) {
   # @arg data: Data object from which to sample
   # @arg reads: expected number of reads
   # @arg M: number of random samples to average
@@ -198,8 +143,8 @@ resample.Data <- function(data, reads, M) {
   }
 }
 
-resample.session <- function(session) {
+resample.session <- function(session, reads = 500, M = 10) {
   # @arg session: environment containing imported and parsed sequence Data objects
   # resamples all Data objects in session
-  eapply(session, resample)
+  eapply(session, function(x) resample(x, reads = reads, M = M))
 }
