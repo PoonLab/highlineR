@@ -50,6 +50,13 @@ plot.Data <- function(data, session_plot = F, mode = "mismatch", master = data$m
     mode <- "mismatch"
   }
   
+  if (is.numeric(master)) {
+    if (length(master) > 1) {
+      stop("Error: only one master sequence can be selected.")
+    }
+    master <- data$raw_seq[[master]]$sequence
+  }
+  
   # format data for plotting
   print(".... Initializing Plot")
   if (mode == "svn") {
@@ -126,7 +133,9 @@ plot.Data <- function(data, session_plot = F, mode = "mismatch", master = data$m
     theme_classic() +
     theme(axis.text = element_text(size = rel(1))) +
     theme(legend.position = "right") +
-    scale_size_identity() 
+    scale_size_identity() +
+    guides(colour = guide_legend(override.aes = list(size=5)))
+  
   if (nrow(data$seq_diff) > 1) {
     # plot vertical lines for mismatches
     gg <- gg +  geom_point(shape = "|", 
@@ -314,7 +323,7 @@ calc_seq_diff <- function(data, mode, master, rf) {
           data$seq_diff[row_num, mismatches] <- comp_seq[mismatches]
           
           # if position in master is gap, do not record mutation in variant
-          data$seq_diff[row_num, intersect(mismatches, deletions)] <- NA
+          # data$seq_diff[row_num, intersect(mismatches, deletions)] <- NA
           
           row_names <- c(row_names, comp)
           row_num = row_num + 1
