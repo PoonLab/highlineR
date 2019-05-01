@@ -1,0 +1,23 @@
+Package: highlineR
+Title: A Novel Visualization Tool to Assess Diversity in NGS Data
+Version: 0.0.0.9000
+Authors@R: c(person("Lisa-Monique", "Edward", email = "lisam.edward@gmail.com", role = c("aut")),
+    person("Art", "Poon", email = "apoon42@uwo.ca", role = "cre"))
+Description: A novel visualization tool to assess diversity in NGS data. Similar to the Los 
+    Alamos Highlighter tool, highlineR highlights mismatches, transition and 
+    transversion mutations, and synonymous and non-synonymous mutations in aligned 
+    protein or nucleotide sequences. This tool also visualizes the relative 
+    frequency of sequence variants and is particularly useful for visualizing 
+    sequence diversity, potential recombination and superinfection.
+Depends: R (>= 3.5.1)
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Imports: 
+    ggplot2 (>= 3.1.1),
+    ggpubr (>= 0.2)
+Suggests: 
+    ape (>= 5.3),
+    parallel (>= 3.5.1)
+BugReports: https://github.com/poonlab/highlineR/issues
+RoxygenNote: 6.1.1
