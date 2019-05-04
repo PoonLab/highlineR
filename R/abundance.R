@@ -22,13 +22,13 @@ compress <- function(x, ...){
 #' @export
 compress.session <- function(x, N = 500, M = 10, unique = F, force = F) {
   # validate session contains imported sequences
-  if (length(ls(session))==0) {
+  if (length(ls(x))==0) {
     stop("Error: session empty. Run highlineR::import(...)")
   }
 
   # calculate sequence abundance for each Data object
-  for (data in ls(session)) {
-    compress(get(data, envir = session, inherits = FALSE), M = M, N = N, unique = unique, force = force)
+  for (data in ls(x)) {
+    compress(get(data, envir = x, inherits = FALSE), M = M, N = N, unique = unique, force = force)
   }
 }
 
