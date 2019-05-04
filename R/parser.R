@@ -6,23 +6,26 @@
 #' @param encoding A character string representing the quality score encoding of FASTQ files. Options: "Sanger", "Solexa", "Illumina1.3", "Illumina1.5". "Illumina1.8".
 #'
 #' @return Parses Data objects by populating the object's \code{raw_seq} list with (header, sequence, [quality scores]) lists.
-parse <- function(x, ...) {
-  UseMethod("parse", x)
+#' @export
+parse_raw_seq <- function(x, ...) {
+  UseMethod("parse_raw_seq", x)
 }
 
-#' @describeIn parse Parse all Data objects in session objects.
+#' @describeIn parse_raw_seq Parse all Data objects in session objects.
 #'
-#' @method parse session
-parse.session <- function(x, encoding = "sanger", ...) {
+#' @method parse_raw_seq session
+#' @export
+parse_raw_seq.session <- function(x, encoding = "sanger", ...) {
   for (data in ls(x)) {
-    parse(get(data, envir = x, inherits = FALSE), encoding = encoding)
+    parse_raw_seq(get(data, envir = x, inherits = FALSE), encoding = encoding)
   }
 }
 
-#' @describeIn parse Parse Data objects of FASTA NGS files.
+#' @describeIn parse_raw_seq Parse Data objects of FASTA NGS files.
 #'
-#' @method parse fasta
-parse.fasta <- function(x, encoding = NULL, ...) {
+#' @method parse_raw_seq fasta
+#' @export
+parse_raw_seq.fasta <- function(x, encoding = NULL, ...) {
   data <- x
 
   # ignore already parsed files
@@ -58,11 +61,11 @@ parse.fasta <- function(x, encoding = NULL, ...) {
         header <- sub("^>", "", line)
         sequence <- ""
       }
-      else if (inherits(data, "nucleotide") && grepl("^[ATGC-]", line)) {
-        sequence <- paste0(sequence, line)
+      else if (inherits(data, "nucleotide") && grepl("^[ATGC-]", line, ignore.case = T)) {
+        sequence <- paste0(sequence, toupper(line))
       }
-      else if (inherits(data, "amino acid") && grepl("^[HMCDEILVAGSTKNQRFWYP-]", line)) {
-        sequence <- paste0(sequence, line)
+      else if (inherits(data, "amino acid") && grepl("^[HMCDEILVAGSTKNQRFWYP-]", line, ignore.case = T)) {
+        sequence <- paste0(sequence, toupper(line))
       }
       else if (line == "") {
         next
@@ -88,10 +91,11 @@ parse.fasta <- function(x, encoding = NULL, ...) {
   }
 }
 
-#' @describeIn parse Parse Data objects of FASTQ NGS files.
+#' @describeIn parse_raw_seq Parse Data objects of FASTQ NGS files.
 #'
-#' @method parse fastq
-parse.fastq <- function(x, encoding = "sanger", ...) {
+#' @method parse_raw_seq fastq
+#' @export
+parse_raw_seq.fastq <- function(x, encoding = "sanger", ...) {
   data <- x
 
   # ignore already parsed files
@@ -124,7 +128,7 @@ parse.fastq <- function(x, encoding = "sanger", ...) {
             header <- sub("^@", "", line)
           }
           else if (position == 1) {
-            sequence <- line
+            sequence <- toupper(line)
           }
           else if (position == 2 && startsWith(line, "+")) {
             ln <- ln + 1
@@ -167,7 +171,8 @@ parse.fastq <- function(x, encoding = "sanger", ...) {
 #' @param encoding Character string of quality score encoding. Options: "Sanger" (default), "Solexa", "Illumina1.3", "Illumina1.5". "Illumina1.8".
 #'
 #' @return Numeric vector of converted quality scores.
-#' @seealso \link{parse}
+#' @seealso \link{parse_raw_seq}
+#' @export
 convert_quality <- function(line, encoding = "sanger", ...) {
   #validate quality scoring method
   encoding <- match.arg(tolower(encoding), c("sanger", "solexa", "illumina1.3", "illumina1.5", "illumina1.8"))
@@ -210,12 +215,12 @@ convert_quality <- function(line, encoding = "sanger", ...) {
   result
 }
 
-#' @describeIn parse Parse Data objects of custom, csv, NGS files.
+#' @describeIn parse_raw_seq Parse Data objects of custom, csv, NGS files.
 #'
-#' @method parse csv
+#' @method parse_raw_seq csv
 #'
 #' @keywords internal
-parse.csv <- function(x, encoding = NULL, ...) {
+parse_raw_seq.csv <- function(x, encoding = NULL, ...) {
   data <- x
 
   dt <- read.csv(data$path, sep=",", header = T, stringsAsFactors = F)
@@ -224,7 +229,7 @@ parse.csv <- function(x, encoding = NULL, ...) {
   for (i in 1:nrow(dt)) {
     header <- paste(dt[i, "refname"], dt[i, "count"], sep = "_")
     # add gaps based on alignment offset
-    sequence <- paste0(paste(rep("-", dt[i, "offset"] - (min(dt$offset))), collapse = ""), dt[i, "seq"])
+    sequence <- paste0(paste(rep("-", dt[i, "offset"] - (min(dt$offset))), collapse = ""), toupper(dt[i, "seq"]))
 
     # ignore sequences with ambiguous bases
     if (grepl("N", toupper(sequence))) {
@@ -245,10 +250,11 @@ parse.csv <- function(x, encoding = NULL, ...) {
   }
 }
 
-#' @describeIn parse default.
+#' @describeIn parse_raw_seq default.
 #'
-#' @method parse default
-parse.default <- function(x) {
+#' @method parse_raw_seq default
+#' @export
+parse_raw_seq.default <- function(x) {
   warning(paste("highlineR does not know how to handle files of type ",
                 class(x),
                 "and can only be used on fasta and fastq files"))
