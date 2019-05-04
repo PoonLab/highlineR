@@ -86,6 +86,7 @@ Data <-  function(path, datatype = tail(strsplit(path, "\\.")[[1]], n = 1), seqt
 #' @param session \code{session} object or character string name of \code{session} object containing Data object to be removed. Default is "highlineR.session".
 #'
 #' @return Removes specified \code{Data} object from specified \code{session}.
+#' @export
 remove_Data <- function(data, session = "highlineR.session") {
   if (is.character(session)){
     session <- get(session)
@@ -116,6 +117,7 @@ remove_Data <- function(data, session = "highlineR.session") {
 #' \item \code{environment}.
 #' }
 #' and contains an environement that will hold Data objects.
+#' @export
 init_session <- function(session = "highlineR.session") {
   assign(session,
          structure(new.env(), class = c("session", "environment")),
@@ -131,6 +133,7 @@ init_session <- function(session = "highlineR.session") {
 #' @param session \code{session} object or character string name of \code{session} object to be removed. Default is "highlineR.session".
 #'
 #' @return Removes specified \code{session} object from global R environment.
+#' @export
 close_session <- function(session = "highlineR.session") {
   if (! is.character(session)) {
     session <- deparse(substitute(session))
@@ -213,6 +216,7 @@ import_file <- function(path, datatype, seqtype, session, force = FALSE) {
 #' @param force A logical value specifying if previously imported file should be overwritten and re-imported.
 #'
 #' @return Returns \code{session} object into which NGS data file(s) were imported.
+#' @export
 import_raw_seq <- function(path, datatype, seqtype, session = "highlineR.session", force = FALSE) {
   # validate path
   if (length(path) == 1) {
