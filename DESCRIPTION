@@ -18,6 +18,9 @@ Imports:
     ggpubr (>= 0.2)
 Suggests: 
     ape (>= 5.3),
-    parallel (>= 3.5.1)
+    parallel (>= 3.5.1),
+    knitr,
+    rmarkdown
 BugReports: https://github.com/poonlab/highlineR/issues
 RoxygenNote: 6.1.1
+VignetteBuilder: knitr

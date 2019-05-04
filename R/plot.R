@@ -34,9 +34,9 @@ plot.session <- function(session, mode = "mismatch", master, sort_by, rf = 1, us
   }
 
   figure <- ggpubr::ggarrange(plotlist = rev(res), common.legend = TRUE)
-  annotate_figure(figure,
-                  bottom = text_grob("Alignment Position", size = rel(18)),
-                  top = text_grob(modetotitle(mode), size = rel(20)))
+  ggpubr::annotate_figure(figure,
+                  bottom = ggpubr::text_grob("Alignment Position", size = ggplot2::rel(18)),
+                  top = ggpubr::text_grob(modetotitle(mode), size = ggplot2::rel(20)))
 }
 
 #' @rdname plot
@@ -69,11 +69,17 @@ plot.Data <- function(data, session_plot = F, mode = "mismatch", master = data$m
 
   # format data for plotting
   print(".... Initializing Plot")
+  print("........ Parameters:")
+  print(paste0("............ Mode: ", mode))
+  print(paste0("............ Master: ", master))
+  print(paste0("............ Sort by: ", sort_by))
+  print(paste0("............ Use sample?: ", use_sample))
   if (mode == "svn") {
     if (!rf %in% 1:3) {
       stop("Error: invalid reading frame selected.")
     }
     else {
+      print(paste0("............ Reading frame: ", rf))
       res <- plot_init(data, compressed = compressed, mode = mode, master = master, sort_by = sort_by, rf = rf)
     }
   }
@@ -134,22 +140,22 @@ plot.Data <- function(data, session_plot = F, mode = "mismatch", master = data$m
   filename <- strsplit(data$path, "/")[[1]]
 
   print(".... Done")
-  gg <- ggplot2::ggplot(data_matrix, aes(x=position, y=as.numeric(as.character(seq_plot_pos)))) +
+  gg <- ggplot2::ggplot(data_matrix, ggplot2::aes(x=position, y=as.numeric(as.character(seq_plot_pos)))) +
     # plot horizontal lines using relative abundances as line height
     ggplot2::geom_hline(yintercept = rel_abun_p,
                size = sqrt(as.numeric(as.character(rel_abun))),
                color = "grey") +
     ggplot2::scale_x_continuous(limits = c(1, nchar(data$master))) +
     ggplot2::theme_classic() +
-    ggplot2::theme(axis.text = element_text(size = rel(1))) +
+    ggplot2::theme(axis.text = ggplot2::element_text(size = ggplot2::rel(1))) +
     ggplot2::theme(legend.position = "right") +
     ggplot2::scale_size_identity() +
-    ggplot2::guides(colour = guide_legend(override.aes = list(size=5)))
+    ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(size=5)))
 
   if (nrow(data$seq_diff) > 1) {
     # plot vertical lines for mismatches
     gg <- gg +  ggplot2::geom_point(shape = "|",
-                           aes(colour = value,
+                                    ggplot2::aes(colour = value,
                                size=sqrt(as.numeric(as.character(rel_abun)))+1,
                                stroke = 0)) +
       ggplot2::scale_y_continuous(limits = c(min(rel_abun_p) - 0.1, max(rel_abun_p) + sqrt(max(rel_abun))/2), breaks=rel_abun_p, labels = seq_groups)
@@ -159,14 +165,13 @@ plot.Data <- function(data, session_plot = F, mode = "mismatch", master = data$m
   }
 
   if (session_plot == T) {
-    gg <- gg + ggplot2::labs(x = element_blank(), y = element_blank(), title = element_blank(), subtitle = filename[length(filename)])
+    gg <- gg + ggplot2::labs(x = ggplot2::element_blank(), y = ggplot2::element_blank(), title = ggplot2::element_blank(), subtitle = filename[length(filename)])
   }
   else {
-    gg <- gg + ggplot2::labs(x = "Alignment Position", y = element_blank(), title = modetotitle(mode), subtitle = filename[length(filename)]) +
-      ggplot2::theme(axis.title.x = element_text(size = rel(2)))
+    gg <- gg + ggplot2::labs(x = "Alignment Position", y = ggplot2::element_blank(), title = modetotitle(mode), subtitle = filename[length(filename)]) +
+      ggplot2::theme(axis.title.x = ggplot2::element_text(size = ggplot2::rel(2)))
   }
 
-  print(mode)
   if (inherits(data, "nucleotide")) {
     if (mode == "mismatch"){
       gg <- gg + ggplot2::scale_color_manual(name = "Legend",
@@ -386,6 +391,7 @@ seq_simil <- function(seq_diff) {
 #' @description \code{sort} orders sequences based on relative abundance
 #' @return \code{sort} returns a (an integer dataframe) which rearranges the provided sequences in ascending order of relative abundance.
 #' @keywords internal
+#' @export
 sort.compressed <- function(compressed) {
   # @arg compressed environment of variant counts
   # @return matrix of variant counts sorted by abundance

@@ -18,5 +18,5 @@ Numeric vector of converted quality scores.
 \code{convert_quality} converts encoded quality scores.
 }
 \seealso{
-\link{parse}
+\link{parse_raw_seq}
 }
