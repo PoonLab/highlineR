@@ -1,11 +1,11 @@
 #' @export
-summary.Data <- function(data, ...) {
-  fn <- data$path # filename
-  dt <- class(data)[1] # datatype of file
-  seq_num <- length(data$raw_seq) # number of sequences
-  seq_len <- nchar(data$raw_seq[[1]]$sequence) # length of sequence
-  var_num <- length(ls(data$compressed)) # number of variants
-  var_counts <- sort(data$compressed) # variant counts sorted by abundance
+summary.Data <- function(object, ...) {
+  fn <- object$path # filename
+  dt <- class(object)[1] # datatype of file
+  seq_num <- length(object$raw_seq) # number of sequences
+  seq_len <- nchar(object$raw_seq[[1]]$sequence) # length of sequence
+  var_num <- length(ls(object$compressed)) # number of variants
+  var_counts <- sort(object$compressed) # variant counts sorted by abundance
   abun_var <- rownames(var_counts)[1] # most abundant variant
 
   res <- list(fn = fn,
@@ -48,8 +48,8 @@ print.summary.Data <- function(x, ...) {
 }
 
 #' @export
-summary.session <- function(session, ...) {
-  res <- eapply(session, summary)
+summary.session <- function(object, ...) {
+  res <- eapply(object, summary)
   class(res) <- "summary.session"
   res
 }
