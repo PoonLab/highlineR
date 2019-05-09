@@ -19,7 +19,7 @@ parse_raw_seq(x, ...)
 
 \method{parse_raw_seq}{csv}(x, encoding = NULL, ...)
 
-\method{parse_raw_seq}{default}(x)
+\method{parse_raw_seq}{default}(x, ...)
 }
 \arguments{
 \item{x}{Data object or session object containing Data objects to parse.}

@@ -4,10 +4,7 @@
 \alias{init_session}
 \title{Constructor function for S3 class representing container for Data objects.}
 \usage{
-init_session(session = "highlineR.session")
-}
-\arguments{
-\item{session}{character string represting name of session to be created.}
+init_session()
 }
 \value{
 Returns a constructed S3 object which inherits from the following classes:
@@ -15,7 +12,7 @@ Returns a constructed S3 object which inherits from the following classes:
 \item \code{session}.
 \item \code{environment}.
 }
-and contains an environement that will hold Data objects.
+and contains an environment that will hold Data objects.
 }
 \description{
 \code{init_session} returns constructed session object.

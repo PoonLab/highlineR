@@ -11,18 +11,18 @@
 \alias{resample.Data}
 \title{Compress generic}
 \usage{
-compress(x, ...)
+compress(x, N, M, unique, force)
 
 \method{compress}{session}(x, N = 500, M = 10, unique = F,
   force = F)
 
 \method{compress}{Data}(x, N = 500, M = 10, unique = F, force = F)
 
-\method{compress}{default}(x)
+\method{compress}{default}(x, N, M, unique, force)
 
 read_sample(x, N, M)
 
-resample(x, ...)
+resample(x, N, M)
 
 \method{resample}{session}(x, N = 500, M = 10)
 
@@ -49,7 +49,7 @@ Compresses Data objects by populating the object's \code{compressed} environment
 \description{
 Compresses the NGS file specified by the path variable of \code{Data} objects.
 
-\code{read_sample} samples \code{N} number of sequences from the compressed evironment M times.
+\code{read_sample} samples \code{N} number of sequences from the compressed environment M times.
 
 \code{resample} resamples Data objects without re-compressing.
 }

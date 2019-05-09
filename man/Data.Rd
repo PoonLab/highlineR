@@ -4,7 +4,7 @@
 \alias{Data}
 \title{Constructor function for S3 class representing an NGS Data object.}
 \usage{
-Data(path, datatype = tail(strsplit(path, "\\\\.")[[1]], n = 1),
+Data(path, datatype = utils::tail(strsplit(path, "\\\\.")[[1]], n = 1),
   seqtype = "nucleotide")
 }
 \arguments{

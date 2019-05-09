@@ -4,7 +4,7 @@
 \alias{convert_quality}
 \title{Convert encoded quality scores}
 \usage{
-convert_quality(line, encoding = "sanger", ...)
+convert_quality(line, encoding = "sanger")
 }
 \arguments{
 \item{line}{Character string of encoded quality scores.}

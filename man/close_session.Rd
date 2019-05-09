@@ -4,7 +4,7 @@
 \alias{close_session}
 \title{Remove session object from global environment.}
 \usage{
-close_session(session = "highlineR.session")
+close_session(session)
 }
 \arguments{
 \item{session}{\code{session} object or character string name of \code{session} object to be removed. Default is "highlineR.session".}

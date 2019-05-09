@@ -14,11 +14,11 @@
 \alias{modetotitle}
 \title{Plot generic}
 \usage{
-\method{plot}{session}(session, mode = "mismatch", master, sort_by,
-  rf = 1, use_sample = T, ...)
+\method{plot}{session}(x, mode = "mismatch", master, sort_by, rf = 1,
+  use_sample = T, ...)
 
-\method{plot}{Data}(data, session_plot = F, mode = "mismatch",
-  master = data$master, sort_by = "similarity", rf = 1,
+\method{plot}{Data}(x, session_plot = F, mode = "mismatch",
+  master = x$master, sort_by = "similarity", rf = 1,
   use_sample = T, ...)
 
 plot_init(data, compressed, mode, master, sort_by = "similarity", rf,
@@ -28,7 +28,7 @@ calc_seq_diff(data, compressed, mode, master, rf)
 
 seq_simil(seq_diff)
 
-\method{sort}{compressed}(compressed)
+\method{sort}{compressed}(x, decreasing, ...)
 
 calc_rel_abun(compressed, seq_order)
 
@@ -39,6 +39,8 @@ aaLookup(c)
 modetotitle(mode)
 }
 \arguments{
+\item{x}{Data object or session object containing Data objects to plot.}
+
 \item{mode}{A character string representing the desired mutation annotation for plotting. Options: "mismatch" (default), "svn" (Synonymous versus Non-Synonymous), "tvt" (Transition versus Transversion).}
 
 \item{master}{A character string representing the sequence to which other sequences should be compared. By default, the most abundant sequence is selected.}
@@ -49,15 +51,11 @@ modetotitle(mode)
 
 \item{use_sample}{A logical value specifying which environment should be plotted. If \code{True}, then the \code{sample} environment of the Data objects is plotted. If \code{False}, the complete \code{compressed} environment is plotted.}
 
-\item{compressed}{Compressed environment of sequences for plotting.}
-
 \item{seq_diff}{matrix of compositional differences between sequences.}
 
 \item{seq_order}{string vector of sequences present in compressed environment ordered as desired for plotting.}
 
 \item{c}{three-character string representing a nucleotide codon for decoding.}
-
-\item{x}{Data object or session object containing Data objects to plot.}
 }
 \value{
 Plots NGS data
