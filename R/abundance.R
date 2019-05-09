@@ -14,7 +14,7 @@ NULL
 
 #' @rdname compress
 #' @export
-compress <- function(x, ...){
+compress <- function(x, N, M, unique, force){
   UseMethod("compress", x)
 }
 
@@ -98,13 +98,13 @@ compress.Data <- function(x, N = 500, M = 10, unique = F, force = F) {
 
 #' @rdname compress
 #' @export
-compress.default <- function(x){
+compress.default <- function(x, N, M, unique, force){
   warning(paste("Error: highlineR cannot compress objects of class ",
                 class(x),
                 "and can only be used on sessions or Data objects."))
 }
 
-#' @description \code{read_sample} samples \code{N} number of sequences from the compressed evironment M times.
+#' @description \code{read_sample} samples \code{N} number of sequences from the compressed environment M times.
 #' @return \code{read_sample} samples \code{N} number of sequences from the compressed evironment M times and stores the average result in the Data object's \code{sample} environment.
 #' @rdname compress
 #' @export
@@ -142,14 +142,14 @@ read_sample <- function(x, N, M) {
 #' @return \code{resample} resamples Data objects by overwriting the object's \code{sample} environment with (sequence: abundance) key:value pairs without re-compressing.
 #' @rdname compress
 #' @export
-resample <- function(x, ...) {
+resample <- function(x, N, M) {
   UseMethod("resample", x)
 }
 
 #' @rdname compress
 #' @export
 resample.session <- function(x, N = 500, M = 10) {
-  eapply(session, function(x) resample(x, N = N, M = M))
+  eapply(x, function(x) resample(x, N = N, M = M))
 }
 
 #' @rdname compress
