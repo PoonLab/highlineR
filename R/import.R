@@ -22,7 +22,7 @@
 #' \item \code{master}: A character string representing the master sequence to use for plotting.
 #' \item \code{seq_diff}: A character matrix of sequence differences in variant sequences compared to the master sequence.
 #' }
-Data <-  function(path, datatype = tail(strsplit(path, "\\.")[[1]], n = 1), seqtype = "nucleotide") {
+Data <-  function(path, datatype = utils::tail(strsplit(path, "\\.")[[1]], n = 1), seqtype = "nucleotide") {
   # validate file exists
   if (!file.exists(path)) {
     stop(paste0("ERROR: file '", path, "' not found")
@@ -109,21 +109,15 @@ remove_Data <- function(data, session = "highlineR.session") {
 #'
 #' \code{init_session} returns constructed session object.
 #'
-#' @param session character string represting name of session to be created.
-#'
 #' @return Returns a constructed S3 object which inherits from the following classes:
 #' \itemize{
 #' \item \code{session}.
 #' \item \code{environment}.
 #' }
-#' and contains an environement that will hold Data objects.
+#' and contains an environment that will hold Data objects.
 #' @export
-init_session <- function(session = "highlineR.session") {
-  assign(session,
-         structure(new.env(), class = c("session", "environment")),
-         envir = .GlobalEnv
-  )
-  get(session)
+init_session <- function() {
+  structure(new.env(), class = c("session", "environment"))
 }
 
 #' Remove session object from global environment.
@@ -134,7 +128,7 @@ init_session <- function(session = "highlineR.session") {
 #'
 #' @return Removes specified \code{session} object from global R environment.
 #' @export
-close_session <- function(session = "highlineR.session") {
+close_session <- function(session) {
   if (! is.character(session)) {
     session <- deparse(substitute(session))
   }
@@ -163,7 +157,7 @@ import_file <- function(path, datatype, seqtype, session, force = FALSE) {
   if (missing(session)) {
     stop("highlineR session not specified.")
   }
-  stopifnot(is.character(session))
+  stopifnot(inherits(session, "session"))
 
   stopifnot(is.character(path))
   stopifnot(file.exists(path))
@@ -177,14 +171,10 @@ import_file <- function(path, datatype, seqtype, session, force = FALSE) {
     stopifnot(is.character(seqtype))
   }
 
-  # create environment if it doesn't exist
-  if (! exists(session)) {
-    init_session(session)
-  }
 
   # ignore files already imported unless forced
-  if (force == FALSE && exists(path, envir = get(session), inherits = FALSE)) {
-    warning(paste("File", path, "ignored. Already imported in", session, "session."))
+  if (force == FALSE && exists(path, envir = session, inherits = FALSE)) {
+    warning(paste("File", path, "ignored. Already imported in session."))
   }
   # otherwise create Data object within specified session
   else {
@@ -200,8 +190,9 @@ import_file <- function(path, datatype, seqtype, session, force = FALSE) {
     else {
       data <- Data(path, datatype = datatype, seqtype = seqtype)
     }
-    parent.env(data) <- get(session)
-    assign(path, data, envir = get(session))
+    parent.env(data) <- session
+    assign(path, data, envir = session)
+    session
   }
 }
 
@@ -225,6 +216,16 @@ import_raw_seq <- function(path, datatype, seqtype, session = "highlineR.session
     }
   }
 
+  # validate session
+  if (is.character(session)) {
+    if (!exists(session)) {
+      session <- init_session()
+    }
+    else {
+      session <- get(session)
+    }
+  }
+
   # if path is directory or list of files, import each file
   if (length(path) >1 || dir.exists(path)) {
     tmp.list.1 <- ""
@@ -241,16 +242,16 @@ import_raw_seq <- function(path, datatype, seqtype, session = "highlineR.session
     for (i in 1:length(tmp.list.1)) {
       result <- tryCatch(
         if (missing(datatype) && missing(seqtype)) {
-          import_file(tmp.list.1[i], session = session, force = force)
+          session <- import_file(tmp.list.1[i], session = session, force = force)
         }
         else if (missing(seqtype)) {
-          import_file(tmp.list.1[i], datatype = datatype, session = session, force = force)
+          session <- import_file(tmp.list.1[i], datatype = datatype, session = session, force = force)
         }
         else if (missing(datatype)) {
-          import_file(tmp.list.1[i], seqtype = seqtype, session = session, force = force)
+          session <- import_file(tmp.list.1[i], seqtype = seqtype, session = session, force = force)
         }
         else {
-          import_file(tmp.list.1[i], datatype = datatype, seqtype = seqtype, session = session, force = force)
+          session <- import_file(tmp.list.1[i], datatype = datatype, seqtype = seqtype, session = session, force = force)
         }
         , error = function(e) {
           warning(e)
@@ -267,19 +268,19 @@ import_raw_seq <- function(path, datatype, seqtype, session = "highlineR.session
   # if path is file, import file
   else {
     if (missing(datatype) && missing(seqtype)) {
-      import_file(path, session = session, force = force)
+      session <- import_file(path, session = session, force = force)
     }
     else if (missing(seqtype)) {
-      import_file(path, datatype = datatype, session = session, force = force)
+      session <- import_file(path, datatype = datatype, session = session, force = force)
     }
     else if (missing(datatype)) {
-      import_file(path, seqtype = seqtype, session = session, force = force)
+      session <- import_file(path, seqtype = seqtype, session = session, force = force)
     }
     else {
-      import_file(path, datatype = datatype, seqtype = seqtype, session = session, force = force)
+      session <- import_file(path, datatype = datatype, seqtype = seqtype, session = session, force = force)
     }
 
   }
 
-  get(session)
+  session
 }
