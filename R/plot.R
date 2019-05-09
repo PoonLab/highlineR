@@ -8,7 +8,6 @@
 #' @param sort_by A character string representing how the sequences should be ordered in a plot. Options: "similarity", "frequency".
 #' @param rf An integer specifying which reading frame should be used when determining Synonymous vs Non-Synonymous mutations. Options: 1 (default), 2, 3.
 #' @param use_sample A logical value specifying which environment should be plotted. If \code{True}, then the \code{sample} environment of the Data objects is plotted. If \code{False}, the complete \code{compressed} environment is plotted.
-#' @param compressed Compressed environment of sequences for plotting.
 #' @param seq_diff matrix of compositional differences between sequences.
 #' @param seq_order string vector of sequences present in compressed environment ordered as desired for plotting.
 #' @param c three-character string representing a nucleotide codon for decoding.
@@ -19,18 +18,18 @@ NULL
 
 #' @rdname plot
 #' @export
-plot.session <- function(session, mode = "mismatch", master, sort_by, rf = 1, use_sample = T, ...) {
+plot.session <- function(x, mode = "mismatch", master, sort_by, rf = 1, use_sample = T, ...) {
   if (missing(master) && missing(sort_by)){
-    res <- eapply(session, plot, mode = mode, session_plot = T, rf = rf, use_sample = use_sample)
+    res <- eapply(x, plot, mode = mode, session_plot = T, rf = rf, use_sample = use_sample)
   }
   else if(missing(master)) {
-    res <- eapply(session, plot, mode = mode, sort_by = sort_by, session_plot = T, rf = rf, use_sample = use_sample)
+    res <- eapply(x, plot, mode = mode, sort_by = sort_by, session_plot = T, rf = rf, use_sample = use_sample)
   }
   else if(missing(sort_by)) {
-    res <- eapply(session, plot, mode = mode, master = master, session_plot = T, rf = rf, use_sample = use_sample)
+    res <- eapply(x, plot, mode = mode, master = master, session_plot = T, rf = rf, use_sample = use_sample)
   }
   else {
-    res <- eapply(session, plot, mode = mode, master = master, sort_by = sort_by, session_plot = T, rf = rf, use_sample = use_sample)
+    res <- eapply(x, plot, mode = mode, master = master, sort_by = sort_by, session_plot = T, rf = rf, use_sample = use_sample)
   }
 
   figure <- ggpubr::ggarrange(plotlist = rev(res), common.legend = TRUE)
@@ -41,7 +40,8 @@ plot.session <- function(session, mode = "mismatch", master, sort_by, rf = 1, us
 
 #' @rdname plot
 #' @export
-plot.Data <- function(data, session_plot = F, mode = "mismatch", master = data$master, sort_by = "similarity", rf = 1, use_sample = T, ...) {
+plot.Data <- function(x, session_plot = F, mode = "mismatch", master = x$master, sort_by = "similarity", rf = 1, use_sample = T, ...) {
+  data <- x
   print(paste("Plotting:", data$path))
   if (use_sample == T) {
     compressed <- data$sample
@@ -203,7 +203,6 @@ plot.Data <- function(data, session_plot = F, mode = "mismatch", master = data$m
                                   labels = c("His", "Asp, Glu", "Lys, Asn, Gln, Arg", "Met", "Ile, Leu, Val", "Phe, Trp, Tyr", "Cys", "Ala, Gly, Ser, Thr", "Pro", "Gap", ""),
                                   values = c("H" = "blue", "DE" = "navyblue", "KNQR" = "skyblue", "M" = "darkgreen", "ILV" = "green", "FWY" = "magenta", "C" = "red", "AGST" = "orange", "P" = "yellow", "-" = "dark grey", "del" = "white"))
   }
-  ggplot2::ggsave(paste0(data$path,"_", mode, ".pdf"), plot = gg, device = "pdf", width = 10, height = 12, units = "in", dpi = 300)
   gg
 }
 
@@ -392,12 +391,9 @@ seq_simil <- function(seq_diff) {
 #' @return \code{sort} returns a (an integer dataframe) which rearranges the provided sequences in ascending order of relative abundance.
 #' @keywords internal
 #' @export
-sort.compressed <- function(compressed) {
-  # @arg compressed environment of variant counts
-  # @return matrix of variant counts sorted by abundance
-
+sort.compressed <- function(x, decreasing, ...) {
   # convert environment of variant counts to matrix
-  var_counts <- unlist(as.list(compressed))
+  var_counts <- unlist(as.list(x))
 
   # order variant matrix by abundance
   var_counts.sorted <- data.frame(var_counts[order(var_counts, decreasing = F)])
@@ -473,3 +469,5 @@ modetotitle <- function(mode) {
               svn = "Synonymous and Non-Synonymous Mutations")
   titles[[mode]]
 }
+
+utils::globalVariables(c("position", "seq_plot_pos", "value", "plot"))
