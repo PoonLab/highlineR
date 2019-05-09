@@ -8,19 +8,21 @@ Description: A novel visualization tool to assess diversity in NGS data. Similar
     transversion mutations, and synonymous and non-synonymous mutations in aligned 
     protein or nucleotide sequences. This tool also visualizes the relative 
     frequency of sequence variants and is particularly useful for visualizing 
-    sequence diversity, potential recombination and superinfection.
-Depends: R (>= 3.5.1)
+    sequence diversity, potential recombination and super-infection.
+Depends: R (>= 3.5)
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
 Imports: 
     ggplot2 (>= 3.1.1),
-    ggpubr (>= 0.2)
+    ggpubr (>= 0.2),
+    utils
 Suggests: 
     ape (>= 5.3),
     parallel (>= 3.5.1),
     knitr,
-    rmarkdown
+    rmarkdown,
+    testthat (>= 2.0.1),
 BugReports: https://github.com/poonlab/highlineR/issues
 RoxygenNote: 6.1.1
 VignetteBuilder: knitr
