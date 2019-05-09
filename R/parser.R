@@ -173,9 +173,9 @@ parse_raw_seq.fastq <- function(x, encoding = "sanger", ...) {
 #' @return Numeric vector of converted quality scores.
 #' @seealso \link{parse_raw_seq}
 #' @export
-convert_quality <- function(line, encoding = "sanger", ...) {
+convert_quality <- function(line, encoding = "sanger") {
   #validate quality scoring method
-  encoding <- match.arg(tolower(encoding), c("sanger", "solexa", "illumina1.3", "illumina1.5", "illumina1.8"))
+  encoding <- match.arg(tolower(encoding), c('sanger', 'solexa', 'illumina1.3', 'illumina1.5', 'illumina1.8'))
 
   # remove trailing whitespace (incl. line break)
   # split string into character vector
@@ -223,7 +223,7 @@ convert_quality <- function(line, encoding = "sanger", ...) {
 parse_raw_seq.csv <- function(x, encoding = NULL, ...) {
   data <- x
 
-  dt <- read.csv(data$path, sep=",", header = T, stringsAsFactors = F)
+  dt <- utils::read.csv(data$path, sep=",", header = T, stringsAsFactors = F)
   l <- -1 # sequence length
 
   for (i in 1:nrow(dt)) {
@@ -254,7 +254,7 @@ parse_raw_seq.csv <- function(x, encoding = NULL, ...) {
 #'
 #' @method parse_raw_seq default
 #' @export
-parse_raw_seq.default <- function(x) {
+parse_raw_seq.default <- function(x, ...) {
   warning(paste("highlineR does not know how to handle files of type ",
                 class(x),
                 "and can only be used on fasta and fastq files"))
