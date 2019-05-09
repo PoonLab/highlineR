@@ -232,6 +232,7 @@ plot_init <- function(data, compressed, mode, master, sort_by = "similarity", rf
   }
   else if (sort_by == "frequency"){
     seq_order <- rownames(sort(compressed))
+    seq_order <- c(seq_order[which(seq_order != master)], master)
   }
 
   # calculate relative abundances for line thickness
