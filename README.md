@@ -40,14 +40,13 @@ For example, let's import a FASTA file to analyze using highlineR. (Data adapted
 
 ``` r
 library(highlineR)
-init_session()
-#> <environment: 0x7f9b01376428>
-#> attr(,"class")
-#> [1] "session"     "environment"
+highlineR.session <- init_session() # create session
+base <- system.file('extdata', package = "highlineR")
+fn <- paste0(base, "/sample.aligned.fa")
 
 # Default import
-import_raw_seq("data/sample.aligned.fa")
-#> <environment: 0x7f9b01376428>
+import_raw_seq(fn)
+#> <environment: 0x7fcb4aca9b70>
 #> attr(,"class")
 #> [1] "session"     "environment"
 ```
@@ -56,25 +55,25 @@ highlineR recognizes standard file extensions (.fasta, .fa, .fas, .fastq, .fq). 
 
 ``` r
 # Import NGS files with non-standard file extensions
-import_raw_seq("data/sample.txt", datatype = "fasta")
+import_raw_seq("/sample.txt", datatype = "fasta")
 ```
 
 The file we are using contains nucleotide sequences. If the file of interest contains amino acid sequences instead then run:
 
 ``` r
 # Import amino acid data
-import_raw_seq("data/sample.aligned.fa", seqtype = "amino acid")
+import_raw_seq("/sample.aligned.fa", seqtype = "amino acid")
 ```
 
 The `import_raw_seq()` function creates an S3 object called a `Data` object with the following structure:
 
 ``` r
 # Classes of Data objects
-str(highlineR.session$`data/sample.aligned.fa`)
-#> Classes 'fasta', 'nucleotide', 'Data', 'environment' <environment: 0x7f9b013fcb30>
+str(highlineR.session[[fn]])
+#> Classes 'fasta', 'nucleotide', 'Data', 'environment' <environment: 0x7fcb4d336bf0>
 
 # Attributes of Data objects
-ls(highlineR.session$`data/sample.aligned.fa`)
+ls(highlineR.session[[fn]])
 #> [1] "compressed" "master"     "path"       "raw_seq"    "sample"    
 #> [6] "seq_diff"
 ```
@@ -97,11 +96,19 @@ This means that the classes of a `Data` object provide information about the dat
 
 The `import_raw_seq()` function also creates another S3 object called a `session` object that acts as a parent container to hold multiple `Data` objects for later plotting. This functionality allows multiple NGS files to be added to a single `session` by unique function calls for later batch processing.
 
-By default, `Data` objects are added to a `highlineR.session` object. To change the `session` to which imported `Data` objects are added, use the session flag:
+In the above example, we first created an empty `session` using the `init_session()` function. This function returns the created `session` object which must be stored by the user for further use. In the above example, the `session` was named `highlineR.session`. This is the default name expected by the program. Following this, if the session argument is not provided, `Data` objects are added to the `highlineR.session` object by default.
+
+To override this default behaviour, the `session` created using `init_session()` can be stored using a different variable name `Data` objects can be imported into that `session`, using the session argument. Alternatively, the result returned by the `import_raw_seq()` function can be stored without a direct call to `init_session()`:
 
 ``` r
-# Import into custom session
-import_raw_seq("data/sample.aligned.fa", session = "my_session")
+# Import into initialized session
+my_session <- init_session()
+import_raw_seq(fn, session = "my_session")
+
+# Import into uninitialized session
+my_session <- import_raw_seq(fn) # To create session using only one import call, the session argument is not needed
+# To add more Data objects to the custom session, you must specify the session argument
+import_raw_seq(paste0(base, "/sample.fa"), session = my_session)
 ```
 
 Parsing
@@ -121,7 +128,7 @@ The `parse_raw_seq()` function stream reads NGS files and populates the `raw_seq
 
 ``` r
 # Strucure of the parsed file
-head(highlineR.session$`data/sample.aligned.fa`$raw_seq, n=3)
+head(highlineR.session[[fn]]$raw_seq, n=3)
 #> [[1]]
 #> [[1]]$header
 #> [1] "G4S72XW01A7BHI_89"
@@ -162,12 +169,12 @@ The `compress()` function populates the `compressed` environments of `Data` obje
 
 ``` r
 # Number of unique sequences in compressed structure
-c_len <- length(highlineR.session$`data/sample.aligned.fa`$compressed)
+c_len <- length(highlineR.session[[fn]]$compressed)
 c_len
 #> [1] 343
 
 # Most abundant sequences in compressed structure
-sort(highlineR.session$`data/sample.aligned.fa`$compressed)[c_len:(c_len-2), , drop = F]
+sort(highlineR.session[[fn]]$compressed)[c_len:(c_len-2), , drop = F]
 #>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          freq
 #> --------------------------------------------TTGCAAGCAGGTTGCTCAGGC-----CCAC----------------------------------------------------------------TTGGTCACTCTGTGCA--------------TTGCCCTTGGCA----------------ATCCGTGTGTTCCGTTTCCAATACCCCGG---------------CCCCTCCTGC----------------------------------------------------TCTATCCATGGCGCTCGCGGCT----CCATCCTCGGCTTCGGGGCG-TCGCTGTCAAAGCGCACGAACTGCGTGTCCTTCACATAGCCCACTTCCATATGCCGGGGCTCCC-------------------------------CTCCGGGGCCGGG-----------------------------------ACACGGAGGTTAGTT-----------------------------   89
 #> AACCGAACGATTCCTGCAGCAGATGAAAGCTGAGTGTCATTTTTTCAATGGGACAGAGCGGGTGTGGC--ATGT------GACCAGATACATCTTTAACCAG------------------------------------GAGGAAATCCTGCGCT--------------------TTGACA---------------------------------GCGATGTGGGGG---------------------------------------------------------------AATTTCGGGC----A-----------GTTAGCGAGC----------------TGGGGCAG-CCCATAGCTGAGTACTTGAACAGCCAGAAGGACATCCTG---------------GACAATTACCGCGCCGCTGTGGACA---GGTGCAGAAACAACTACGCGCTTGTT-----------------------------------------AGCCTAATGTCAAAGCGGAGAGTTAAGCCGAAGTCTCT   72
@@ -180,41 +187,41 @@ The `N` and `M` arguments to the `compress()` function are used to determine the
 
 In an NGS experiment, if the number of input sequences is much greater than the number of templates (nucleic acids) available during the sequencing reaction, then the frequency distribution of variants produced may be skewed. In an attempt to accommodate for this phenomenon, highlineR utilizes a read\_sample() function which randomly samples N reads with replacement, M times. The average of the resulting frequencies of variants present in at least 85% of the replicates is then used as the expected variant frequencies.
 
-Sampling is performed automatically during compression. A dataset can be resampled without re-comressing using the `resample()` function.
+Sampling is performed automatically during compression. A dataset can be resampled without re-compressing using the `resample()` function.
 
 ``` r
 # Sample created during compression
 # Number of sequences in sample environment
-s_len <- length(highlineR.session$`data/sample.aligned.fa`$sample)
+s_len <- length(highlineR.session[[fn]]$sample)
 s_len
-#> [1] 162
+#> [1] 181
 
 # Most abundance sequences in sample environment
-sort(highlineR.session$`data/sample.aligned.fa`$sample)[s_len:(s_len-2), , drop = F]
+sort(highlineR.session[[fn]]$sample)[s_len:(s_len-2), , drop = F]
 #>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          freq
-#> --------------------------------------------TTGCAAGCAGGTTGCTCAGGC-----CCAC----------------------------------------------------------------TTGGTCACTCTGTGCA--------------TTGCCCTTGGCA----------------ATCCGTGTGTTCCGTTTCCAATACCCCGG---------------CCCCTCCTGC----------------------------------------------------TCTATCCATGGCGCTCGCGGCT----CCATCCTCGGCTTCGGGGCG-TCGCTGTCAAAGCGCACGAACTGCGTGTCCTTCACATAGCCCACTTCCATATGCCGGGGCTCCC-------------------------------CTCCGGGGCCGGG-----------------------------------ACACGGAGGTTAGTT-----------------------------    8
-#> AACCGAACGATTCCTGCAGCAGATGAAAGCTGAGTGTCATTTTTTCAATGGGACAGAGCGGGTGTGGC--ATGT------GACCAGATACATCTTTAACCAG------------------------------------GAGGAAATCCTGCGCT--------------------TTGACA---------------------------------GCGATGTGGGGG---------------------------------------------------------------AATTTCGGGC----A-----------GTTAGCGAGC----------------TGGGGCAG-CCCATAGCTGAGTACTTGAACAGCCAGAAGGACATCCTG---------------GACAATTACCGCGCCGCTGTGGACA---GGTGCAGAAACAACTACGCGCTTGTT-----------------------------------------AGCCTAATGTCAAAGCGGAGAGTTAAGCCGAAGTCTCT    5
-#> -----------------------TTGCAATTCGGCTTAACTCTCCG------------------------CTTT------GACATTAGGCTA-ACAAGCGCG------------------------------------TAGTTGTTTCTGCACC------------------TGTCCACA---------------------------------GCGGCGCGGTAA----------------TTGTCCAGG----------------------------------ATGTCCTTCTGGCT----G-----------------------------TTCAAGTACTCAGCTATGGGCTGCCCCAGCTCGCTAACTGCCCGAAATTCCCCCACATCGCTGTCAAAGCGCAGGATTTCCT------CCTGGTTAAA---------------GATGTATCTGGTCACATGCCACACCCGCTCTGTCCCATTGAAAAATGACACTCAGCTTTCATCTGCTGCAGGAATCGTTGTCTT-------    5
+#> AACCGAACGATTCCTGCAGCAGATGAAAGCTGAGTGTCATTTTTTCAATGGGACAGAGCGGGTGTGGC--ATGT------GACCAGATACATCTTTAACCAG------------------------------------GAGGAAATCCTGCGCT--------------------TTGACA---------------------------------GCGATGTGGGGG---------------------------------------------------------------AATTTCGGGC----A-----------GTTAGCGAGC----------------TGGGGCAG-CCCATAGCTGAGTACTTGAACAGCCAGAAGGACATCCTG---------------GACAATTACCGCGCCGCTGTGGACA---GGTGCAGAAACAACTACGCGCTTGTT-----------------------------------------AGCCTAATGTCAAAGCGGAGAGTTAAGCCGAAGTCTCT    7
+#> --------------------------------------------TTGCAAGCAGGTTGCTCAGGC-----CCAC----------------------------------------------------------------TTGGTCACTCTGTGCA--------------TTGCCCTTGGCA----------------ATCCGTGTGTTCCGTTTCCAATACCCCGG---------------CCCCTCCTGC----------------------------------------------------TCTATCCATGGCGCTCGCGGCT----CCATCCTCGGCTTCGGGGCG-TCGCTGTCAAAGCGCACGAACTGCGTGTCCTTCACATAGCCCACTTCCATATGCCGGGGCTCCC-------------------------------CTCCGGGGCCGGG-----------------------------------ACACGGAGGTTAGTT-----------------------------    7
+#> TTCTCGACGATTCCTGCAGCAGATGAAAGCTGAGTGTCATTTTTTCAATGGGACAGAGCGGGTGTGGC--ATGT------GACCAGATACATCTTTAACCAG------------------------------------GAGGAAATCCTGCGCT--------------------TTGACA---------------------------------GCGATGTGGGGG---------------------------------------------------------------AATTTCGGGC----A-----------GTTAGCGAGC----------------TGGGGCAG-CCCATAGCTGAGTACTTGAACAGCCAGAAGGACATCCTG---------------GACAATTACCGCGCCGCTGTGGACA---GGTGCAGAAACAACTACGCGCTTGTT-----------------------------------------AGCCTAATGTCAAAGCGGAGAGTTAAGCCGAAGTCTCT    5
 
 # Resampling
-resample(highlineR.session$`data/sample.aligned.fa`, 
+resample(highlineR.session[[fn]], 
          N = c_len * 0.75,
          M = 10)
-#> <environment: 0x7f9b013faa50>
+#> <environment: 0x7fcb4d331ab0>
 #> attr(,"class")
 #> [1] "compressed"  "environment"
 
 # New number of sequences in sample environment
-new_s_len <- length(highlineR.session$`data/sample.aligned.fa`$sample)
+new_s_len <- length(highlineR.session[[fn]]$sample)
 new_s_len
-#> [1] 36
+#> [1] 40
 
 # Most abundance sequences in new sample environment
-sort(highlineR.session$`data/sample.aligned.fa`$sample)[new_s_len:(new_s_len-2), , drop = F]
+sort(highlineR.session[[fn]]$sample)[new_s_len:(new_s_len-2), , drop = F]
 #>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          freq
+#> --------------------------------------------TTGCAAGCAGGTTGCTCAGGC-----CCAC----------------------------------------------------------------TTGGTCACTCTGTGCA--------------TTGCCCTTGGCA----------------ATCCGTGTGTTCCGTTTCCAATACCCCGG---------------CCCCTCCTGC----------------------------------------------------TCTATCCATGGCGCTCGCGGCT----CCATCCTCGGCTTCGGGGCG-TCGCTGTCAAAGCGCACGAACTGCGTGTCCTTCACATAGCCCACTTCCATATGCCGGGGCTCCC-------------------------------CTCCGGGGCCGGG-----------------------------------ACACGGAGGTTAGTT-----------------------------    4
+#> TTCTCGACGATTCCTGCAGCAGATGAAAGCTGAGTGTCATTTTTTCAATGGGACAGAGCGGGTGTGGC--ATGT------GACCAGATACATCTTTAACCAG------------------------------------GAGGAAATCCTGCGCT--------------------TTGACA---------------------------------GCGATGTGGGGG---------------------------------------------------------------AATTTCGGGC----A-----------GTTAGCGAGC----------------TGGGGCAG-CCCATAGCTGAGTACTTGAACAGCCAGAAGGACATCCTG---------------GACAATTACCGCGCCGCTGTGGACA---GGTGCAGAAACAACTACGCGCTTGTT-----------------------------------------AGCCTAATGTCAAAGCGGAGAGTTAAGCCGAAGTCTCT    3
 #> CACAGTACGATTCCTGCAGCAGATGAAAGCTGAGTGTCATTTTTTCAATGGGACAGAGCGGGTGTGGC--ATGT------GACCAGATACATCTTTAACCAG------------------------------------GAGGAAATCCTGCGCT--------------------TTGACA---------------------------------GCGATGTGGGGG---------------------------------------------------------------AATTTCGGGC----A-----------GTTAGCGAGC----------------TGGGGCAG-CCCATAGCTGAGTACTTGAACAGCCAGAAGGACATCCTG---------------GACAATTACCGCGCCGCTGTGGACA---GGTGCAGAAACAACTACGCGCTTGTT-----------------------------------------AGCCTAATGTCAAAGCGGAGAGTTAAGCCGAATACGTG    3
-#> AACCGAACGATTCCTGCAGCAGATGAAAGCTGAGTGTCATTTTTTCAATGGGACAGAGCGGGTGTGGC--ATGT------GACCAGATACATCTTTAACCAG------------------------------------GAGGAAATCCTGCGCT--------------------TTGACA---------------------------------GCGATGTGGGGG---------------------------------------------------------------AATTTCGGGC----A-----------GTTAGCGAGC----------------TGGGGCAG-CCCATAGCTGAGTACTTGAACAGCCAGAAGGACATCCTG---------------GACAATTACCGCGCCGCTGTGGACA---GGTGCAGAAACAACTACGCGCTTGTT-----------------------------------------AGCCTAATGTCAAAGCGGAGAGTTAAGCCGAAGTCTCT    3
-#> --------------------------------------------TTGCAAGCAGGTTGCTCAGGC-----CCAC----------------------------------------------------------------TTGGTCACTCTGTGCA--------------TTGCCCTTGGCA----------------ATCCGTGTGTTCCGTTTCCAATACCCCGG---------------CCCCTCCTGC----------------------------------------------------TCTATCCATGGCGCTCGCGGCT----CCATCCTCGGCTTCGGGGCG-TCGCTGTCAAAGCGCACGAACTGCGTGTCCTTCACATAGCCCACTTCCATATGCCGGGGCTCCC-------------------------------CTCCGGGGCCGGG-----------------------------------ACACGGAGGTTAGTT-----------------------------    3
 ```
 
 Plotting
@@ -234,7 +241,7 @@ Using the default parameters, the most abundant sequence is selected as the mast
 ``` r
 # Plot session with variants sorted by similarity to master
 plot(highlineR.session)
-#> [1] "Plotting: data/sample.aligned.fa"
+#> [1] "Plotting: /Library/Frameworks/R.framework/Versions/3.5/Resources/library/highlineR/extdata/sample.aligned.fa"
 #> [1] ".... Initializing Plot"
 #> [1] "........ Parameters:"
 #> [1] "............ Mode: mismatch"
@@ -256,7 +263,7 @@ Variants can also be sorted by frequency rather than similarity:
 ``` r
 # Plot session with variants sorted by relative abundance
 plot(highlineR.session, sort_by = "frequency")
-#> [1] "Plotting: data/sample.aligned.fa"
+#> [1] "Plotting: /Library/Frameworks/R.framework/Versions/3.5/Resources/library/highlineR/extdata/sample.aligned.fa"
 #> [1] ".... Initializing Plot"
 #> [1] "........ Parameters:"
 #> [1] "............ Mode: mismatch"
@@ -278,7 +285,7 @@ Finally, rather than simply plotting mismatches, mutations can be annotated as s
 ``` r
 # Plot synonymous and non-synonymous mutations
 plot(highlineR.session, mode = "svn")
-#> [1] "Plotting: data/sample.aligned.fa"
+#> [1] "Plotting: /Library/Frameworks/R.framework/Versions/3.5/Resources/library/highlineR/extdata/sample.aligned.fa"
 #> [1] ".... Initializing Plot"
 #> [1] "........ Parameters:"
 #> [1] "............ Mode: svn"
@@ -300,7 +307,7 @@ plot(highlineR.session, mode = "svn")
 
 # Plot transitions and transversions
 plot(highlineR.session, mode = "tvt")
-#> [1] "Plotting: data/sample.aligned.fa"
+#> [1] "Plotting: /Library/Frameworks/R.framework/Versions/3.5/Resources/library/highlineR/extdata/sample.aligned.fa"
 #> [1] ".... Initializing Plot"
 #> [1] "........ Parameters:"
 #> [1] "............ Mode: tvt"
