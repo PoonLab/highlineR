@@ -40,7 +40,8 @@ plot.session <- function(x, mode = "mismatch", master, sort_by, rf = 1, use_samp
 
 #' @rdname plot
 #' @export
-plot.Data <- function(x, session_plot = F, mode = "mismatch", master = x$master, sort_by = "similarity", rf = 1, use_sample = T, ...) {
+plot.Data <- function(x, session_plot = F, mode = "mismatch", master = x$master, 
+                      sort_by = "similarity", rf = 1, use_sample = T, ...) {
   data <- x
   print(paste("Plotting:", data$path))
   if (use_sample == T) {
@@ -114,7 +115,12 @@ plot.Data <- function(x, session_plot = F, mode = "mismatch", master = x$master,
       }
     }
   }
-  seq_groups <- seq_groups[order(as.numeric(factor(gsub(master, paste(master, "(m)"), seqs), levels = levels(data_matrix$seq))))]
+  seq_groups <- seq_groups[
+    order(as.numeric(factor(
+      gsub(master, paste(master, "(m)"), seqs, perl=T), 
+      levels = levels(data_matrix$seq)
+    )))
+  ]
   seq_groups[length(seqs)] <- paste(seq_groups[length(seqs)], "(m)")
 
   data_matrix$seq_plot_pos <- data_matrix$seq

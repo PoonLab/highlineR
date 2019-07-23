@@ -20,30 +20,28 @@ knitr::opts_chunk$set(
 
 The 'highlineR' package provides users with easy-to-use functions for batch-processing of NGS data and generating plots similar to Highlighter that “stretch” lines to indicate variant frequencies in the data.
 
+
 ## Installation
 
-You can install the released version of highlineR from [CRAN](https://CRAN.R-project.org) with:
-
-``` r
-install.packages("highlineR")
-```
-
-And the development version from [GitHub](https://github.com/) with:
+You can install the development version from [GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("devtools")
 devtools::install_github("PoonLab/highlineR")
 ```
+
+
 ## Import
+
 HighlineR accepts aligned nucleotide or amino acid NGS data in the FASTA format as input. Aligned sequences stored in FASTQ format can also be converted and read by the program. In theory, data generated using any NGS instrument and methodology can be input to highlineR as long as the sequence alignment is supplied in an accepted file format. There is no limit on the number of sequences that a file may contain nor on the number of files that may be input.
 
 The import function accepts three types of input:
 
 1. A path to a single NGS file,
 
-1. A path to a directory containing NGS file(s), or
+2. A path to a directory containing NGS file(s), or
 
-1. A vector of paths to NGS file(s).
+3. A vector of paths to NGS file(s).
 
 For example, let's import a FASTA file to analyze using highlineR. (Data adapted from [Ferrandiz-Rovira et. al.](https://www.nature.com/articles/hdy201513#data-archiving) available [here](http://evobiolab.biol.amu.edu.pl/amplisat/index.php?examples))
 ```{r import}
@@ -109,7 +107,9 @@ my_session <- import_raw_seq(fn) # To create session using only one import call,
 import_raw_seq(paste0(base, "/sample.fa"), session = my_session)
 ```
 
+
 ## Parsing
+
 Following data import, single `Data` objects or complete `session` objects can be parsed as follows:
 ```{r parse}
 # Parse single Data object
@@ -147,7 +147,9 @@ sort(highlineR.session[[fn]]$compressed)[c_len:(c_len-2), , drop = F]
 
 The `N` and `M` arguments to the `compress()` function are used to determine the behaviour of the sampling functions described below which populate the `sample` environments of `Data` objects.
 
+
 ### Sampling
+
 In an NGS experiment, if the number of input sequences is much greater than the number of templates (nucleic acids) available during the sequencing reaction, then the frequency distribution of variants produced may be skewed. In an attempt to accommodate for this phenomenon, highlineR utilizes a read_sample() function which randomly samples N reads with replacement, M times. The average of the resulting frequencies of variants present in at least 85% of the replicates is then used as the expected variant frequencies.
 
 Sampling is performed automatically during compression. A dataset can be resampled without re-compressing using the `resample()` function.
@@ -172,6 +174,7 @@ new_s_len
 # Most abundance sequences in new sample environment
 sort(highlineR.session[[fn]]$sample)[new_s_len:(new_s_len-2), , drop = F]
 ```
+
 
 ## Plotting
 
