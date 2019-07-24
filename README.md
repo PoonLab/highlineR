@@ -57,7 +57,7 @@ fn <- paste0(base, "/sample.aligned.fa")
 
 # Default import
 import_raw_seq(fn)
-#> <environment: 0x562c50167610>
+#> <environment: 0x56256f214a18>
 #> attr(,"class")
 #> [1] "session"     "environment"
 ```
@@ -85,7 +85,7 @@ object with the following structure:
 ``` r
 # Classes of Data objects
 str(highlineR.session[[fn]])
-#> Classes 'fasta', 'nucleotide', 'Data', 'environment' <environment: 0x562c50453db0>
+#> Classes 'fasta', 'nucleotide', 'Data', 'environment' <environment: 0x56256f504e60>
 
 # Attributes of Data objects
 ls(highlineR.session[[fn]])
@@ -250,33 +250,33 @@ resampled without re-compressing using the `resample()` function.
 # Number of sequences in sample environment
 s_len <- length(highlineR.session[[fn]]$sample)
 s_len
-#> [1] 158
+#> [1] 156
 
 # Most abundance sequences in sample environment
 sort(highlineR.session[[fn]]$sample)[s_len:(s_len-2), , drop = F]
 #>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          freq
-#> AACCGAACGATTCCTGCAGCAGATGAAAGCTGAGTGTCATTTTTTCAATGGGACAGAGCGGGTGTGGC--ATGT------GACCAGATACATCTTTAACCAG------------------------------------GAGGAAATCCTGCGCT--------------------TTGACA---------------------------------GCGATGTGGGGG---------------------------------------------------------------AATTTCGGGC----A-----------GTTAGCGAGC----------------TGGGGCAG-CCCATAGCTGAGTACTTGAACAGCCAGAAGGACATCCTG---------------GACAATTACCGCGCCGCTGTGGACA---GGTGCAGAAACAACTACGCGCTTGTT-----------------------------------------AGCCTAATGTCAAAGCGGAGAGTTAAGCCGAAGTCTCT    6
-#> --------------------------------------------TTGCAAGCAGGTTGCTCAGGC-----CCAC----------------------------------------------------------------TTGGTCACTCTGTGCA--------------TTGCCCTTGGCA----------------ATCCGTGTGTTCCGTTTCCAATACCCCGG---------------CCCCTCCTGC----------------------------------------------------TCTATCCATGGCGCTCGCGGCT----CCATCCTCGGCTTCGGGGCG-TCGCTGTCAAAGCGCACGAACTGCGTGTCCTTCACATAGCCCACTTCCATATGCCGGGGCTCCC-------------------------------CTCCGGGGCCGGG-----------------------------------ACACGGAGGTTAGTT-----------------------------    6
-#> ---------------------AACCGAATCTCCGTGTCCCGGCCCG-GCCTCCGGGAGTCCCGCT-----TCAT------CTCCGTGGGCTACGTGGACGAC------------------------------------ACCCAGTTCATGCGCT--------------------TCGACA---------------------------------GCGACGCGAAGA-----------------ATCCCAGA----------------------------------CAGGAGCCGCGGGC----GCCGTGGATGGGGCTGGAGGGT----------------CCGGAGTA-TTGGGAGCAAAACACACGGATTTCCGAGAACTCTGCA-----------------CAGAATCACCG-------------------------------AATGTGCTTGAA----------------------------------------CACCCTGCGCGATTCG-----------------------    5
+#> AACCGAACGATTCCTGCAGCAGATGAAAGCTGAGTGTCATTTTTTCAATGGGACAGAGCGGGTGTGGC--ATGT------GACCAGATACATCTTTAACCAG------------------------------------GAGGAAATCCTGCGCT--------------------TTGACA---------------------------------GCGATGTGGGGG---------------------------------------------------------------AATTTCGGGC----A-----------GTTAGCGAGC----------------TGGGGCAG-CCCATAGCTGAGTACTTGAACAGCCAGAAGGACATCCTG---------------GACAATTACCGCGCCGCTGTGGACA---GGTGCAGAAACAACTACGCGCTTGTT-----------------------------------------AGCCTAATGTCAAAGCGGAGAGTTAAGCCGAAGTCTCT    7
+#> --------------------------------------------TTGCAAGCAGGTTGCTCAGGC-----CCAC----------------------------------------------------------------TTGGTCACTCTGTGCA--------------TTGCCCTTGGCA----------------ATCCGTGTGTTCCGTTTCCAATACCCCGG---------------CCCCTCCTGC----------------------------------------------------TCTATCCATGGCGCTCGCGGCT----CCATCCTCGGCTTCGGGGCG-TCGCTGTCAAAGCGCACGAACTGCGTGTCCTTCACATAGCCCACTTCCATATGCCGGGGCTCCC-------------------------------CTCCGGGGCCGGG-----------------------------------ACACGGAGGTTAGTT-----------------------------    7
+#> -----------------------AGAGACTTCGGCTTAACTCTCCG------------------------CTTT------GACATTAGGCTA-ACAAGCGCG------------------------------------TAGTTGTTTCTGCACC------------------TGTCCACA---------------------------------GCGGCGCGGTAA----------------TTGTCCAGG----------------------------------ATGTCCTTCTGGCT----G-----------------------------TTCAAGTACTCAGCTATGGGCTGCCCCAGCTCGCTAACTGCCCGAAATTCCCCCACATCGCTGTCAAAGCGCAGGATTTCCT------CCTGGTTAAA---------------GATGTATCTGGTCACATGCCACACCCGCTCTGTCCCATTGAAAAATGACACTCAGCTTTCATCTGCTGCAGGAATCGTTCGGTT-------    6
 
 # Resampling
 resample(highlineR.session[[fn]], 
          N = c_len * 0.75,
          M = 10)
-#> <environment: 0x562c50451128>
+#> <environment: 0x56256f4ff5a8>
 #> attr(,"class")
 #> [1] "compressed"  "environment"
 
 # New number of sequences in sample environment
 new_s_len <- length(highlineR.session[[fn]]$sample)
 new_s_len
-#> [1] 37
+#> [1] 39
 
 # Most abundance sequences in new sample environment
 sort(highlineR.session[[fn]]$sample)[new_s_len:(new_s_len-2), , drop = F]
 #>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          freq
-#> -----------------------ACTTCATTCGGCTTAACTCTCCG------------------------CTTT------GACATTAGGCTA-ACAAGTGCG------------------------------------TAGTTGTTTCTGCACC------------------TGTCCACA---------------------------------GCGGCGCGGTAA----------------TTGTCCAGG----------------------------------ATGTCCTTCTGGCT----G-----------------------------TTCAAGTACTCAGCTATGGGCTGCCCCAGCTCGCTAACTGCCCGAAATTCCCCCACATCGCTGTCAAAGCGCAGGATTTCCT------CCTGGTTAAA---------------GATGTATCTGGTCACATGCCACACCCGCTCTGTCCCATTGAAAAATGACACTCAGCTTTCATCTGCTGCAGGAATCGTCTTA---------    4
-#> ATAATTACGATTCCTGCAGCAGATGAAAGCTGAGTGTCATTTTTTCAATGGGACAGAGCGGGTGTGGC--ATGT------GACCAGATACATCTTTAACCAG------------------------------------GAGGAAATCCTGCGCT--------------------TTGACA---------------------------------GCGATGTGGGGG---------------------------------------------------------------AATTTCGGGC----A-----------GTTAGCGAGC----------------TGGGGCAG-CCCATAGCTGAGTACTTGAACAGCCAGAAGGACATCCTG---------------GACAATTACCGCGCCGCTGTGGACA---GGTGCAGAAACAACTACGCGCTTGTT-----------------------------------------AGCCTAATGTCAAAGCGGAGAGTTAAGCCGAATACGTG    3
+#> --------------------------------------------TTGCAAGCAGGTTGCTCAGGC-----CCAC----------------------------------------------------------------TTGGTCACTCTGTGCA--------------TTGCCCTTGGCA----------------ATCCGTGTGTTCCGTTTCCAATACCCCGG---------------CCCCTCCTGC----------------------------------------------------TCTATCCATGGCGCTCGCGGCT----CCATCCTCGGCTTCGGGGCG-TCGCTGTCAAAGCGCACGAACTGCGTGTCCTTCACATAGCCCACTTCCATATGCCGGGGCTCCC-------------------------------CTCCGGGGCCGGG-----------------------------------ACACGGAGGTTAGTT-----------------------------    4
+#> -----------------------AGAGACTTCGGCTTAACTCTCCG------------------------CTTT------GACATTAGGCTA-ACAAGCGCG------------------------------------TAGTTGTTTCTGCACC------------------TGTCCACA---------------------------------GCGGCGCGGTAA----------------TTGTCCAGG----------------------------------ATGTCCTTCTGGCT----G-----------------------------TTCAAGTACTCAGCTATGGGCTGCCCCAGCTCGCTAACTGCCCGAAATTCCCCCACATCGCTGTCAAAGCGCAGGATTTCCT------CCTGGTTAAA---------------GATGTATCTGGTCACATGCCACACCCGCTCTGTCCCATTGAAAAATGACACTCAGCTTTCATCTGCTGCAGGAATCGTTCGGTT-------    3
 #> CACAGTACGATTCCTGCAGCAGATGAAAGCTGAGTGTCATTTTTTCAATGGGACAGAGCGGGTGTGGC--ATGT------GACCAGATACATCTTTAACCAG------------------------------------GAGGAAATCCTGCGCT--------------------TTGACA---------------------------------GCGATGTGGGGG---------------------------------------------------------------AATTTCGGGC----A-----------GTTAGCGAGC----------------TGGGGCAG-CCCATAGCTGAGTACTTGAACAGCCAGAAGGACATCCTG---------------GACAATTACCGCGCCGCTGTGGACA---GGTGCAGAAACAACTACGCGCTTGTT-----------------------------------------AGCCTAATGTCAAAGCGGAGAGTTAAGCCGAATACGTG    3
 ```
 
