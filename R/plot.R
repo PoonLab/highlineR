@@ -1,24 +1,26 @@
-#' Plot generic
-#'
-#' Plots highlineR Data objects
-#'
-#' @param x Data object or session object containing Data objects to plot.
-#' @param mode A character string representing the desired mutation annotation for plotting. Options: "mismatch" (default), "svn" (Synonymous versus Non-Synonymous), "tvt" (Transition versus Transversion).
-#' @param master A character string representing the sequence to which other sequences should be compared. By default, the most abundant sequence is selected.
-#' @param sort_by A character string representing how the sequences should be ordered in a plot. Options: "similarity", "frequency".
-#' @param rf An integer specifying which reading frame should be used when determining Synonymous vs Non-Synonymous mutations. Options: 1 (default), 2, 3.
-#' @param use_sample A logical value specifying which environment should be plotted. If \code{True}, then the \code{sample} environment of the Data objects is plotted. If \code{False}, the complete \code{compressed} environment is plotted.
-#' @param seq_diff matrix of compositional differences between sequences.
-#' @param seq_order string vector of sequences present in compressed environment ordered as desired for plotting.
-#' @param c three-character string representing a nucleotide codon for decoding.
-#'
-#' @return Plots NGS data
-#' @name plot
-NULL
 
-#' @rdname plot
-#' @export
-plot.session <- function(x, mode = "mismatch", master, sort_by, rf = 1, use_sample = T, quiet=F, ...) {
+plot.session <- function(x, mode = "mismatch", master, sort_by, rf = 1, 
+                         use_sample = T, quiet=F, ...) {
+  # plot.session is a generic plot function for objects of class "session" (highlineR)
+  # This function is a wrapper for calling plot.Data
+  #
+  # Args:
+  #   x: Data object or session object containing Data objects to plot.
+  #   mode: A character string representing the desired mutation annotation for 
+  #         plotting.  Options: "mismatch" (default), "svn" (Synonymous versus Non-Synonymous),
+  #         "tvt" (Transition versus Transversion).
+  #   master: A character string representing the sequence to which other 
+  #           sequences should be compared. By default, the most abundant 
+  #           sequence is selected.
+  #   sort_by: A character string representing how the sequences should be ordered 
+  #            in a plot. Options: "similarity", "frequency".
+  #   rf: An integer specifying which reading frame should be used when determining
+  #       Synonymous vs Non-Synonymous mutations. Options: 1 (default), 2, 3.
+  #   use_sample: A logical value specifying which environment should be plotted.
+  #               If \code{True}, then the \code{sample} environment of the Data
+  #               objects is plotted. If \code{False}, the complete \code{compressed}
+  #               environment is plotted.
+  
   if (missing(master) && missing(sort_by)){
     res <- eapply(x, plot, mode = mode, session_plot = T, rf = rf, quiet=quiet, 
                   use_sample = use_sample)
@@ -41,8 +43,6 @@ plot.session <- function(x, mode = "mismatch", master, sort_by, rf = 1, use_samp
                   bottom = ggpubr::text_grob("Alignment Position", size = ggplot2::rel(18)),
                   top = ggpubr::text_grob(modetotitle(mode), size = ggplot2::rel(20)))
 }
-
-
 
 
 
@@ -301,8 +301,10 @@ calc_seq_diff <- function(data, compressed, mode, master, rf) {
   #   master:  master sequence
   #   rf:  <optional> Reading frame, required for 'svn' mode
   # Returns:
-  #   character matrix of L columns (sequence length) and N rows (number
+  #   An LxN matrix of compositional differences between sequences.
+  #   where L columns map to sequence length and N rows map to number
   #   of sequences).  Row names contain the sequences.
+  #   Matrix is 
   
   # initialize matrix 
   data$seq_diff <- matrix(ncol = nchar(data$raw_seq[[1]]$sequence), 
