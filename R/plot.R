@@ -1,6 +1,6 @@
 
-plot.session <- function(x, mode = "mismatch", master, sort_by, rf = 1, 
-                         use_sample = T, quiet=F, ...) {
+plot.session <- function(x, mode = "mismatch", master = NA, sort_by = NA, rf = 1, 
+                         use_sample = T, quiet=F, size.title=16, size.xlab=14, ...) {
   # plot.session is a generic plot function for objects of class "session" (highlineR)
   # This function is a wrapper for calling plot.Data
   #
@@ -21,36 +21,30 @@ plot.session <- function(x, mode = "mismatch", master, sort_by, rf = 1,
   #               objects is plotted. If \code{False}, the complete \code{compressed}
   #               environment is plotted.
   
-  if (missing(master) && missing(sort_by)){
-    res <- eapply(x, plot, mode = mode, session_plot = T, rf = rf, quiet=quiet, 
-                  use_sample = use_sample)
-  }
-  else if(missing(master)) {
-    res <- eapply(x, plot, mode = mode, sort_by = sort_by, session_plot = T, 
-                  rf = rf, quiet=quiet, use_sample = use_sample)
-  }
-  else if(missing(sort_by)) {
-    res <- eapply(x, plot, mode = mode, master = master, session_plot = T, 
-                  rf = rf, use_sample = use_sample, quiet=quiet)
-  }
-  else {
-    res <- eapply(x, plot, mode = mode, master = master, sort_by = sort_by, 
-                  session_plot = T, rf = rf, use_sample = use_sample, quiet=quiet)
-  }
+
+  res <- eapply(x, plot, mode = mode, master = master, sort_by = sort_by, 
+                session_plot = T, rf = rf, use_sample = use_sample, quiet=quiet)
 
   figure <- ggpubr::ggarrange(plotlist = rev(res), common.legend = TRUE)
   ggpubr::annotate_figure(figure,
-                  bottom = ggpubr::text_grob("Alignment Position", size = ggplot2::rel(18)),
-                  top = ggpubr::text_grob(modetotitle(mode), size = ggplot2::rel(20)))
+                  bottom = ggpubr::text_grob("Alignment Position", 
+                                             size = ggplot2::rel(size.xlab)),
+                  top = ggpubr::text_grob(modetotitle(mode), 
+                                          size = ggplot2::rel(size.title)))
 }
 
 
 
-plot.Data <- function(x, session_plot = F, mode = "mismatch", master = x$master, 
-                      sort_by = "similarity", rf = 1, use_sample = T, quiet = F, ...) {
+plot.Data <- function(x, mode = NA, master = NA, sort_by = NA, 
+                      rf = 1, use_sample = T, quiet = F, session_plot = F, ...) {
   # plot.Data converts a highlineR object of class Data into a 
   # matrix for plotting, and then runs call.ggplot to generate the 
   # plot object
+  
+  # default arguments
+  if (is.na(mode)) mode='mismatch'
+  if (is.na(master)) master = x$master
+  if (is.na(sort_by)) sort_by = 'similarity'
   
   data <- x
   
@@ -253,7 +247,6 @@ call.ggplot <- function(data, data_matrix, seq_groups, rel_abun, rel_abun_p, fil
   }
   gg
 }
-
 
 
 
