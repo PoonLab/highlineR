@@ -1,15 +1,21 @@
-highline <- function(file, ..., datatype='fasta', seqtype='nucleotide',
-                     mode='mismatch', sort_by=quiet=FALSE) {
+highline <- function(file, datatype='fasta', seqtype='nucleotide',
+                     mode='mismatch', sort_by='similarity', quiet=TRUE) {
   # A wrapper function to simplify the standard workflow
   #
   # Args:
-  #   file: path to alignment file (format FASTA or FASTQ, see <datatype>)
-  #         or a character vector of multiple paths
-  #   ...: additional file paths
-  #   
+  #   file: character vector containing one or more paths to alignment 
+  #         files
+  #   datatype: specify file format - one of 'fasta', 'fastq' or 'csv'
+  #   seqtype: 'nucleotide' or 'amino acid'
+  #   mode: 'mismatch', 'svn' or 'tvt'
+  #   sort_by: arrange sequences on plot by 'similarity' or 'frequency'
+  #   quiet: if FALSE, suppress verbose output messages
   
   # input checks
-  if (!file_test(file)) {
+  if (!is.character(file)) {
+    stop(paste("Argument 'file' must be a character vector"))
+  }
+  if (any(!file.exists(file))) {
     stop(paste("File ", file, " does not exist, stopping"))
   }
   
