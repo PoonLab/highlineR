@@ -1,4 +1,4 @@
-highline <- function(file, datatype='fasta', seqtype='nucleotide',
+highline <- function(file, datatype='fasta', seqtype='nucleotide', rf=1, 
                      mode='mismatch', sort_by='similarity', quiet=TRUE) {
   # A wrapper function to simplify the standard workflow
   #
@@ -16,24 +16,18 @@ highline <- function(file, datatype='fasta', seqtype='nucleotide',
     stop(paste("Argument 'file' must be a character vector"))
   }
   if (any(!file.exists(file))) {
-    stop(paste("File ", file, " does not exist, stopping"))
+    stop(paste("File does not exist, stopping"))
   }
   
   # initialize highlineR session
   ses <- init_session()
   
   # import data from file
-  if (length(fn) == 1 && )
-  files <- c(list(fn), list(...))
-  for (file in files) {
-    ses <- import_raw_seq(file, datatype=datatype, seqtype=seqtype, session=ses)
+  for (f in file) {
+    ses <- import_raw_seq(f, datatype=datatype, seqtype=seqtype, session=ses)
   }
   
   parse_raw_seq(ses)
   compress(ses, unique=FALSE)
-  plot(ses, quiet=quiet)
+  plot(ses, mode=mode, rf=rf, sort_by=sort_by, quiet=quiet)
 }
-
-fn <- '~/git/highlineR/working/04013448.fasta'
-
-files <- Sys.glob('~/git/highlineR/working/*.fasta')

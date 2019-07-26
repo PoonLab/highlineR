@@ -20,7 +20,6 @@ plot.session <- function(x, mode = "mismatch", master = NA, sort_by = NA, rf = 1
   #               If \code{True}, then the \code{sample} environment of the Data
   #               objects is plotted. If \code{False}, the complete \code{compressed}
   #               environment is plotted.
-  
 
   res <- eapply(x, plot, mode = mode, master = master, sort_by = sort_by, 
                 session_plot = T, rf = rf, use_sample = use_sample, quiet=quiet)
@@ -94,12 +93,12 @@ plot.Data <- function(x, mode = NA, master = NA, sort_by = NA,
     else {
       if (!quiet) print(paste0("............ Reading frame: ", rf))
       res <- plot_init(data, compressed = compressed, mode = mode, master = master, 
-                       sort_by = sort_by, rf = rf)
+                       sort_by = sort_by, rf = rf, quiet=quiet)
     }
   }
   else {
     res <- plot_init(data, compressed = compressed, mode = mode, master = master, 
-                     sort_by = sort_by)
+                     sort_by = sort_by, quiet=quiet)
   }
 
   data_matrix <- res[[1]]
@@ -315,7 +314,6 @@ calc_seq_diff <- function(data, compressed, mode, master, rf) {
   #   An LxN matrix of compositional differences between sequences.
   #   where L columns map to sequence length and N rows map to number
   #   of sequences).  Row names contain the sequences.
-  #   Matrix is 
   
   # initialize matrix 
   data$seq_diff <- matrix(ncol = nchar(data$raw_seq[[1]]$sequence), 
