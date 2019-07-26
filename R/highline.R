@@ -1,12 +1,14 @@
-highline <- function(file, datatype='fasta', seqtype='nucleotide', rf=1, 
-                     mode='mismatch', sort_by='similarity', quiet=TRUE) {
-  # A wrapper function to simplify the standard workflow
+highline <- function(file, datatype='fasta', seqtype='nucleotide', unique=FALSE,
+                     rf=1, mode='mismatch', sort_by='similarity', quiet=TRUE) {
+  # A wrapper function to simplify the standard highlineR workflow
   #
   # Args:
   #   file: character vector containing one or more paths to alignment 
   #         files
   #   datatype: specify file format - one of 'fasta', 'fastq' or 'csv'
   #   seqtype: 'nucleotide' or 'amino acid'
+  #   rf: reading frame (default 1) - affects 'tvt' mode only
+  #   unique: if FALSE, gather identical sequences into unique variants
   #   mode: 'mismatch', 'svn' or 'tvt'
   #   sort_by: arrange sequences on plot by 'similarity' or 'frequency'
   #   quiet: if FALSE, suppress verbose output messages
@@ -28,6 +30,6 @@ highline <- function(file, datatype='fasta', seqtype='nucleotide', rf=1,
   }
   
   parse_raw_seq(ses)
-  compress(ses, unique=FALSE)
+  compress(ses, unique=unique)
   plot(ses, mode=mode, rf=rf, sort_by=sort_by, quiet=quiet)
 }

@@ -1,6 +1,6 @@
 Package: highlineR
 Title: A Novel Visualization Tool to Assess Diversity in NGS Data
-Version: 0.0.0.9000
+Version: 0.1
 Authors@R: c(person("Lisa-Monique", "Edward", email = "lisam.edward@gmail.com", role = c("aut")),
     person("Art", "Poon", email = "apoon42@uwo.ca", role = "cre"))
 Description: A novel visualization tool to assess diversity in NGS data. Similar to the Los 
