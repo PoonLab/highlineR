@@ -3,17 +3,18 @@
 highlineR: a tool for visualizing NGS datasets in R
 ===================================================
 
-[Highlighter](https://www.hiv.lanl.gov/content/sequence/HIGHLIGHT/highlighter_top.html) is a web-based tool maintained by the Los Alamos National laboratory that makes it easy for investigators to quickly scan their NGS data for compositional differences. However, it is inconvenient for users to use Highlighter to process a large number of NGS files as the tool only accepts a single file as input and limits users to 500 sequences per file. Furthermore, the tool does not visualize the frequencies of different sequence variants in a dataset.
+[Highlighter](https://www.hiv.lanl.gov/content/sequence/HIGHLIGHT/highlighter_top.html) is a web-based tool maintained by the Los Alamos National laboratory that makes it easy for investigators to quickly scan their sequence alignments for compositional differences. However, it is inconvenient for users to use Highlighter to process a large number of alignment files as the tool only accepts a single file as input and limits users to 500 sequences per file. This limit on the number of sequences can also be problematic for users working with alignments derived from next-genertion sequencing platforms. Furthermore, the tool does not visualize the frequencies of different sequence variants in a dataset.
 
-The 'highlineR' package provides users with easy-to-use functions for batch-processing of NGS data and generating plots similar to Highlighter that “stretch” lines to indicate variant frequencies in the data.
+The *highlineR* package provides users with easy-to-use functions for batch-processing of sequence alignments, including NGS data, to generate plots similar to Highlighter. In addition, *highlineR* uses the visual aid of varying line widths to indicate variant frequencies in the data (see *Usage*).
 
 Installation
 ------------
 
-You can install the development version from [GitHub](https://github.com/) with:
+The simplest method to install *highlineR* is to use the R *devtools* package:
 
 ``` r
-# install.packages("devtools")
+# install.packages("devtools")  # if not already installed
+require(devtools)
 devtools::install_github("PoonLab/highlineR")
 ```
 
@@ -35,3 +36,10 @@ Note that for the above example, the files were loaded from a developer director
 # files <- Sys.glob('~/git/highlineR/inst/extdata/*.fasta')
 files <- Sys.glob(paste0(system.file(package='highlineR'), '/extdata/*.fasta'))
 ```
+
+Explanation
+-----------
+
+A *multiple sequence alignment* is a hypothesis about how residues (nucleotides or amino acids) in two or more sequences were derived from residues in a common ancestral sequence. By convention, each sequence is arranged horizontally in rows to be read from left to right, and evolutionarily-related (homologous) residues are arranged vertically in a column. It is possible for two or more sequences to be exactly identical. When this occurs, we refer to the shared sequence as the "sequence variant", and the number of times this variant appears in the data as its "count". (Note there is no established terminology for these features.)
+
+A *highlighter* plot marks the location of residues that are different from the reference sequence, which has been selected by the user or the program. By default, the `highline` function selects the most common
