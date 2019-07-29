@@ -31,7 +31,7 @@ plot.session <- function(x, mode = "mismatch", master = NA, sort_by = NA, rf = 1
   #   mode: A character string representing the desired mutation annotation for 
   #         plotting.  Options: "mismatch" (default), "svn" (Synonymous versus Non-Synonymous),
   #         "tvt" (Transition versus Transversion).
-  #   master: A character string representing the sequence to which other 
+  #   master: A character or integer vector representing the sequence to which other 
   #           sequences should be compared. By default, the most abundant 
   #           sequence is selected.
   #   sort_by: A character string representing how the sequences should be ordered 
@@ -42,9 +42,24 @@ plot.session <- function(x, mode = "mismatch", master = NA, sort_by = NA, rf = 1
   #               If \code{True}, then the \code{sample} environment of the Data
   #               objects is plotted. If \code{False}, the complete \code{compressed}
   #               environment is plotted.
+  
+  # apply different master sequence arguments to each data set
+  n <- length(x)
+  res <- lapply(1:n, function(i) {
+    plot(  # calls plot.Data
+      get(ls(x)[i], x),  # extract Data object
+      mode=mode,  # cannot mix modes
+      master=ifelse(length(master)==n, master[i], master),
+      sort_by=ifelse(length(sort_by)==n, sort_by[i], sort_by),
+      rf=ifelse(length(rf)==n, rf[i], rf),
+      use_sample=ifelse(length(use_sample)==n, use_sample[i], use_sample),
+      session_plot=T,
+      quiet=quiet
+    )
+  })
 
-  res <- eapply(x, plot, mode = mode, master = master, sort_by = sort_by, 
-                session_plot = T, rf = rf, use_sample = use_sample, quiet=quiet)
+  #res <- eapply(x, plot, mode = mode, master = master, sort_by = sort_by, 
+  #              session_plot = T, rf = rf, use_sample = use_sample, quiet=quiet)
 
   figure <- ggpubr::ggarrange(plotlist = rev(res), common.legend = TRUE)
   ggpubr::annotate_figure(figure,

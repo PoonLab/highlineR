@@ -12,7 +12,8 @@
 #' to the files containing sequence alignment(s).
 #'  
 highline <- function(file, datatype='fasta', seqtype='nucleotide', unique=FALSE,
-                     rf=1, mode='mismatch', sort_by='similarity', quiet=TRUE) {
+                     master=NA, rf=1, mode='mismatch', sort_by='similarity', 
+                     use_sample=FALSE, quiet=TRUE) {
   # A wrapper function to simplify the standard highlineR workflow
   #
   # Args:
@@ -44,5 +45,6 @@ highline <- function(file, datatype='fasta', seqtype='nucleotide', unique=FALSE,
   
   parse_raw_seq(ses)
   compress(ses, unique=unique)
-  plot(ses, mode=mode, rf=rf, sort_by=sort_by, quiet=quiet)
+  plot(ses, mode=mode, rf=rf, sort_by=sort_by, use_sample=use_sample, 
+       quiet=quiet)
 }
