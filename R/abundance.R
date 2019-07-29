@@ -5,7 +5,10 @@
 #' @param x Data object or session object containing Data objects to compress.
 #' @param N Integer expected number of reads.
 #' @param M Integer number of random samples to select from dataset for read averaging.
-#' @param unique A logical value specifying whether the NGS data file contains unique sequences. If \code{True}, then it is assumed that read counts are present in sequence labels. If \code{False}, then read counts are inferred from the number of distinct instances of sequences in the file.
+#' @param unique A logical value specifying whether the NGS data file contains unique 
+#'               sequences. If \code{True}, then it is assumed that read counts are 
+#'               present in sequence labels. If \code{False}, then read counts are 
+#'               inferred from the number of distinct instances of sequences in the file.
 #' @param force A logical value specifying if previously imported file should be overwritten and re-imported.
 #'
 #' @return Compresses Data objects by populating the object's \code{compressed} environment with (sequence: abundance) key:value pairs.

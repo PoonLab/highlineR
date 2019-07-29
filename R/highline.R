@@ -1,3 +1,16 @@
+#' highlineR plotting
+#' 
+#' \code{highline} generates \href{https://www.hiv.lanl.gov/content/sequence/HIGHLIGHT/highlighter_top.html}{Highlighter}-style 
+#' visualizations from one or more sequence alignments.  These plots use colour marks 
+#' to annotate the differences of each sequence in the alignment from a reference sequence. 
+#' 
+#' @examples 
+#'  highline(file, datatype='fasta', seqtype='nucleotide', unique=FALSE, 
+#'  rf=1, mode='mismatch', sort_by='similarity', quiet=TRUE)
+#' 
+#' @param file a character vector containing one or more relative or absolute paths 
+#' to the files containing sequence alignment(s).
+#'  
 highline <- function(file, datatype='fasta', seqtype='nucleotide', unique=FALSE,
                      rf=1, mode='mismatch', sort_by='similarity', quiet=TRUE) {
   # A wrapper function to simplify the standard highlineR workflow

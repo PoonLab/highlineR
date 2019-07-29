@@ -1,4 +1,26 @@
+#' highlineR plot functions
+#' 
+#' Generic plot functions for highlineR objects
+#' 
+#' @param x Data object or session object containing Data objects to plot.
+#' @param mode A character string representing the desired mutation annotation for plotting. 
+#' Options: "mismatch" (default), "svn" (Synonymous versus Non-Synonymous), "tvt" (Transition 
+#' versus Transversion).
+#' @param master A character string representing the sequence to which other sequences 
+#' should be compared. By default, the most abundant sequence is selected.
+#' @param sort_by A character string representing how the sequences should be ordered in 
+#' a plot. Options: "similarity", "frequency".
+#' @param rf An integer specifying which reading frame should be used when determining 
+#' Synonymous vs Non-Synonymous mutations. Options: 1 (default), 2, 3.
+#' @param use_sample A logical value specifying which environment should be plotted. If 
+#' \code{True}, then the \code{sample} environment of the Data objects is plotted. If \code{False}, the complete \code{compressed} environment is plotted.
+#' 
+#' @return Object of class "ggplot2"
+#' @name plot
+NULL
 
+#' @rdname plot
+#' @export
 plot.session <- function(x, mode = "mismatch", master = NA, sort_by = NA, rf = 1, 
                          use_sample = T, quiet=F, size.title=16, size.xlab=14, ...) {
   # plot.session is a generic plot function for objects of class "session" (highlineR)
@@ -32,8 +54,8 @@ plot.session <- function(x, mode = "mismatch", master = NA, sort_by = NA, rf = 1
                                           size = ggplot2::rel(size.title)))
 }
 
-
-
+#' @rdname plot
+#' @export
 plot.Data <- function(x, mode = NA, master = NA, sort_by = NA, 
                       rf = 1, use_sample = T, quiet = F, session_plot = F, ...) {
   # plot.Data converts a highlineR object of class Data into a 
