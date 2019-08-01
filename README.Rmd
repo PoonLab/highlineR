@@ -118,7 +118,7 @@ highline(files[3], mode='tvt')
 
 * Annotate the Highlighter plot by non-synonymous and synonymous differences (note that the reading frame can be modified with the `rf` argument.)
 ```{r fig.width=6, fig.height=7, out.width=600}
-highline(files[5], mode='svn')
+highline(files[2], mode='svn')
 ```
 
 

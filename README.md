@@ -162,7 +162,7 @@ argument.)
 <!-- end list -->
 
 ``` r
-highline(files[5], mode='svn')
+highline(files[2], mode='svn')
 ```
 
 <img src="man/figures/README-unnamed-chunk-4-1.png" width="600" style="display: block; margin: auto;" />
