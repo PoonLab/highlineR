@@ -46,7 +46,7 @@ test_that("quality score conversion correct", {
                0:41)
   # invalid quality scoring encoding
   expect_error(convert_quality(intToUtf8(33:73), encoding = "invalid"),
-               "'arg' should be one of \"sanger\", \"solexa\", \"illumina1.3\", \"illumina1.5\", \"illumina1.8\"")
+               "'arg' should be one of \U201Csanger\U201D, \U201Csolexa\U201D, \U201Cillumina1.3\U201D, \U201Cillumina1.5\U201D, \U201Cillumina1.8\U201D")
 })
 
 test_that("fastq files parsed correctly", {
