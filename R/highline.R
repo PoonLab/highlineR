@@ -10,17 +10,13 @@
 #' 
 #' @param file a character vector containing one or more relative or absolute paths 
 #' to the files containing sequence alignment(s).
-#'  
+#' @param datatype: specify file format - one of 'fasta', 'fastq' or 'csv'
+#' @param seqtype: 'nucleotide' or 'amino acid'
+#' @param rf: reading frame (defaults to 1) - affects 'svn' mode only
 highline <- function(file, datatype='fasta', seqtype='nucleotide', unique=FALSE,
                      master=NA, rf=1, mode='mismatch', sort_by='similarity', 
                      use_sample=FALSE, quiet=TRUE) {
-  # A wrapper function to simplify the standard highlineR workflow
-  #
-  # Args:
-  #   file: character vector containing one or more paths to alignment 
-  #         files
-  #   datatype: specify file format - one of 'fasta', 'fastq' or 'csv'
-  #   seqtype: 'nucleotide' or 'amino acid'
+
   #   rf: reading frame (default 1) - affects 'tvt' mode only
   #   unique: if FALSE, gather identical sequences into unique variants
   #   mode: 'mismatch', 'svn' or 'tvt'
