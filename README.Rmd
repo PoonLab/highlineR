@@ -37,6 +37,8 @@ devtools::install_github("PoonLab/highlineR")
 
 ## Usage
 
+As a basic example of using `highlineR`, we're going to load a number of anonymized [data sets](https://www.hiv.lanl.gov/content/sequence/HIV/USER_ALIGNMENTS/Li/) sets from [a published study](https://journals.plos.org/plospathogens/article?id=10.1371/journal.ppat.1000890) of HIV-1 diversity within patients:
+
 ```{r fig.width=9, fig.height=6}
 require(highlineR)
 # use glob to retrieve paths to FASTA files
@@ -110,12 +112,12 @@ for (f in files) {
 ```
 
 * Annotate the Highlighter plot by transitions and transversions.
-```{r fig.width=8, fig.height=8, out.width=700}
+```{r fig.width=6, fig.height=9, out.width=600}
 highline(files[3], mode='tvt')
 ```
 
 * Annotate the Highlighter plot by non-synonymous and synonymous differences (note that the reading frame can be modified with the `rf` argument.)
-```{r fig.width=5, fig.height=5, out.width=500}
+```{r fig.width=6, fig.height=7, out.width=600}
 highline(files[5], mode='svn')
 ```
 
